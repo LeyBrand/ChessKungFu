@@ -10,17 +10,13 @@ def process_click(x, y, board, selected_pos, validator = None):
             if board[row][col] != '.':
                 return (col, row)
         else:
-            if board[row][col] != ".":
-                return (col, row)
-            
-            else:
-                src_col, src_row = selected_pos
-                piece = board[src_row][src_col]
-                if validator and not validator(piece, selected_pos, (col, row)):
-                    return selected_pos
-                board[row][col] = piece
-                board[src_row][src_col] = '.'
-                return None
+            src_col, src_row = selected_pos
+            piece = board[src_row][src_col]
+            if validator and not validator(piece, selected_pos, (col, row)):
+                return selected_pos
+            board[row][col] = piece
+            board[src_row][src_col] = '.'
+            return None
     return selected_pos
 
 def processer(click_handler = None):
