@@ -1,7 +1,10 @@
 import sys
 
-def print_board():
+def processer():
     input_data = sys.stdin.read()
+    print(input_data)
+
+def print_board(input_data):
     parsed_board = board_piecec_parsing(input_data)
     if not parsed_board[0]:
         print(parsed_board[1])
@@ -12,43 +15,39 @@ def print_board():
             print(row)
         return
 
-def board_piecec_parsing(input_data):
+def board_piecec_parsing(board_text):
 
-    if not input_data:
-        return
-    
-    try:
-        board_part = input_data.split("Board:")[1].split("Commands:")[0].strip()
-    except IndexError:
-        return
-    
-    lines = [line.strip() for line in board_part.splitlines() if line.strip()]
-
+    lines = [line.split() for line in board_text.strip().splitlines()]
     if not lines:
-        return
+        return None
     
     valid_pieces = {'.', 'wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'}
 
-    parsed_board = []
-    expected_cols = None
+    expected_cols = len(lines[0])
 
     for line in lines:
-        tokens = line.split()
-        if not tokens:
-            continue
-
-        for token in tokens:
+        if len(line) != expected_cols:
+            print("ERROR ROW_WIDTH_MISMATCH")
+            sys.exit()
+        for token in line:
             if token not in valid_pieces:
-                return [False, "ERROR UNKNOWN_TOKEN"]
-            
-            if expected_cols is None:
-                expected_cols = len(tokens)
-            elif len(tokens) != expected_cols:
-                return [False, "ERROR ROW_WIDTH_MISMATCH"] 
-            
-        parsed_board.append(tokens)
-    
-    return [True, parsed_board]
+                print("ERROR UNKNOWN_TOKEN")
+                sys.exit()
+    return lines
+
+def print_board(board):
+    for row in board:
+        print(" ".join(row))
 
 if __name__ == "__main__":
-    print_board()
+    input_data = sys.stdin.read()
+    b_idx = input_data.find("Board:")
+    c_idx = input_data.find("Commands:")
+    
+
+    board_part = input_data[b_idx + len("Board:"):c_idx].strip()
+    
+
+    parsed_board = board_piecec_parsing(board_part)
+    if parsed_board:
+        print_board(parsed_board)
