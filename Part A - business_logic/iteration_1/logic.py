@@ -1,8 +1,18 @@
 import sys
 
-def board_piecec_parsing():
-    
+def print_board():
     input_data = sys.stdin.read()
+    parsed_board = board_piecec_parsing(input_data)
+    if not parsed_board[0]:
+        print(parsed_board[1])
+        return
+
+    else:
+        for row in parsed_board:
+            print(row)
+        return
+
+def board_piecec_parsing(input_data):
 
     if not input_data:
         return
@@ -29,19 +39,16 @@ def board_piecec_parsing():
 
         for token in tokens:
             if token not in valid_pieces:
-                print("ERROR UNKNOWN_TOKEN")
-                return
+                return [False, "ERROR UNKNOWN_TOKEN"]
             
             if expected_cols is None:
                 expected_cols = len(tokens)
             elif len(tokens) != expected_cols:
-                print("ERROR ROW_WIDTH_MISMATCH")
-                return
+                return [False, "ERROR ROW_WIDTH_MISMATCH"] 
             
-        parsed_board.append(" ".join(tokens))
-
-    for row in parsed_board:
-        print(row)
+        parsed_board.append(tokens)
+    
+    return [True, parsed_board]
 
 if __name__ == "__main__":
-    board_piecec_parsing()
+    print_board()

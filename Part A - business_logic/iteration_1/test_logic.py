@@ -1,6 +1,6 @@
 import pytest
 from io import StringIO
-from logic import board_piecec_parsing
+from logic import print_board
 
 @pytest.mark.parametrize("input_text, expected_output", [
     # Test 2: לוח מלבני 3x4
@@ -29,7 +29,7 @@ def test_board_parsing(monkeypatch, capsys, input_text, expected_output):
     monkeypatch.setattr('sys.stdin', StringIO(input_text))
     
     # הרצת הפונקציה הראשית
-    board_piecec_parsing()
+    print_board()
     
     # קריאת הפלט שהודפס
     captured = capsys.readouterr().out.strip()
