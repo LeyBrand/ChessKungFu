@@ -1,7 +1,7 @@
 import sys
 from iteration_1.logic import print_board, board_piecec_parsing
 
-def process_click(x, y, board, selected_pos):
+def process_click(x, y, board, selected_pos, validator = None):
     col = x // 100
     row = y // 100
 
@@ -16,16 +16,17 @@ def process_click(x, y, board, selected_pos):
             else:
                 src_col, src_row = selected_pos
                 piece = board[src_row][src_col]
-
+                if validator and not validator(piece, selected_pos, (col, row)):
+                    return selected_pos
                 board[row][col] = piece
                 board[src_row][src_col] = '.'
                 return None
     return selected_pos
 
-def processer():
-    
+def processer(click_handler = None):
+    if click_handler is None:
+        click_handler = process_click
     input_data = sys.stdin.read()
-
     b_idx = input_data.find("Board:")
     c_idx = input_data.find("Commands:")
     parsed_board = board_piecec_parsing(input_data[b_idx + len("Board:") : c_idx].strip())
@@ -43,7 +44,7 @@ def processer():
 
         if cmd == "click":
             x, y = int(parts[1]), int(parts[2])
-            selected_pos = process_click(x, y, parsed_board, selected_pos)
+            selected_pos = click_handler(x, y, parsed_board, selected_pos)
 
         elif cmd == "wait":
             ms = int(parts[1])
