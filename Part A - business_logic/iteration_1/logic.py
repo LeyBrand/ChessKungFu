@@ -4,16 +4,6 @@ def processer():
     input_data = sys.stdin.read()
     print(input_data)
 
-def print_board(input_data):
-    parsed_board = board_piecec_parsing(input_data)
-    if not parsed_board[0]:
-        print(parsed_board[1])
-        return
-
-    else:
-        for row in parsed_board:
-            print(row)
-        return
 
 def board_piecec_parsing(board_text):
 

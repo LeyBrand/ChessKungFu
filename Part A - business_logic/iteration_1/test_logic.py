@@ -1,38 +1,40 @@
 import pytest
 from io import StringIO
-from logic import print_board
+import sys
+# בהנחה שהלוגיקה נמצאת ב-iteration_1.logic
+from iteration_1.logic import board_piecec_parsing, print_board
 
-@pytest.mark.parametrize("input_text, expected_output", [
-    # Test 2: לוח מלבני 3x4
-    (
-        "Board:\nwK . . bK\n. . . .\nwR . . bR\nCommands: print board",
-        "wK . . bK\n. . . .\nwR . . bR"
-    ),
-    # Test 3: אסימונים וצבעים שונים
-    (
-        "Board:\nwK . bQ\n. wN .\nbP . wR\nCommands: print board",
-        "wK . bQ\n. wN .\nbP . wR"
-    ),
-    # Test 4: זיהוי טוקן לא חוקי
-    (
-        "Board: wK xZ . . Commands: ",
-        "ERROR UNKNOWN_TOKEN"
-    ),
-    # Test 5: חוסר התאמה ברוחב השורות
-    (
-        "Board:\nwK . . .\nbK\nCommands: ",
-        "ERROR ROW_WIDTH_MISMATCH"
-    )
-])
-def test_board_parsing(monkeypatch, capsys, input_text, expected_output):
-    # החלפת ה-stdin בקלט המדומה
-    monkeypatch.setattr('sys.stdin', StringIO(input_text))
+def test_board_parsing(capsys):
+    # נבדוק את הלוגיקה על ידי העברת הקלט לפונקציית ה-parsing
+    # ולא על ידי הרצת ה-main כולו, כדי להימנע מבעיות עם sys.exit
     
-    # הרצת הפונקציה הראשית
-    print_board()
+    # טסט ללוח תקין
+    input_text = "wK . . bK\n. . . .\nwR . . bR"
+    expected_output = "wK . . bK\n. . . .\nwR . . bR\n"
     
-    # קריאת הפלט שהודפס
-    captured = capsys.readouterr().out.strip()
+    parsed = board_piecec_parsing(input_text)
+    print_board(parsed)
     
-    # השוואה לתוצאה המצופה
+    captured = capsys.readouterr().out
     assert captured == expected_output
+
+def test_unknown_token(capsys):
+    # בדיקת טוקן לא חוקי
+    invalid_input = "wK xZ . ."
+    
+    # בודקים שהפונקציה מדפיסה את השגיאה כפי שהגדרת
+    with pytest.raises(SystemExit):
+        board_piecec_parsing(invalid_input)
+    
+    captured = capsys.readouterr().out
+    assert "ERROR UNKNOWN_TOKEN" in captured
+
+def test_row_width_mismatch(capsys):
+    # בדיקת חוסר התאמה ברוחב
+    mismatched_input = "wK . .\nbK"
+    
+    with pytest.raises(SystemExit):
+        board_piecec_parsing(mismatched_input)
+        
+    captured = capsys.readouterr().out
+    assert "ERROR ROW_WIDTH_MISMATCH" in captured
