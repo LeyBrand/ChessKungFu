@@ -8,15 +8,18 @@ class ChessGame:
         self.game_time = 0
         self._validator = piece_rules or is_valid_move
         self.pending_moves = []
+        self.game_over = [False, None]
 
     def click(self, x, y):
+        if self.game_over[0]:
+            return
         col = x // CELL_SIZE
         row = y // CELL_SIZE
 
         if not (0 <= row < len(self.board) and 0 <= col < len(self.board[row])):
             return 
             
-        apply_arrived_moves(self.board, self.pending_moves, self.game_time)
+        apply_arrived_moves(self.board, self.pending_moves, self.game_time, self.game_over)
         if self.selected_pos is None:
             if self.board[row][col] != '.' and not is_in_movement((col, row), self.pending_moves):
                 self.selected_pos = (col, row)
@@ -28,5 +31,5 @@ class ChessGame:
                 add_pending_move(piece, src, dst, self.game_time, self.pending_moves)
                 self.selected_pos = None
     def print_board(self):
-        apply_arrived_moves(self.board, self.pending_moves, self.game_time)
+        apply_arrived_moves(self.board, self.pending_moves, self.game_time, self.game_over)
         _print_board(self.board)

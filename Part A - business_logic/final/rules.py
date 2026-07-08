@@ -67,7 +67,7 @@ def is_dst_taken(dst, pending_moves):
 def add_pending_move(piece, src, dst, game_time, pending_moves):
     pending_moves.append((piece, src, dst, game_time + 1000 * (abs(dst[0] - src[0]) + abs(dst[1] - src[1]))))
 
-def apply_arrived_moves(board, pending_moves, game_time):
+def apply_arrived_moves(board, pending_moves, game_time, game_over):
     arrived = [m for m in pending_moves if m[3] <= game_time]
     arrived.sort(key = lambda m: m[3])
     for move in arrived:
@@ -82,5 +82,7 @@ def apply_arrived_moves(board, pending_moves, game_time):
         board[dst[1]][dst[0]] = piece
         board[src[1]][src[0]] = '.'
         pending_moves.remove(move)
+        if dst_piece in ('wK', 'bK'):
+            game_over[0] = True
             
 
