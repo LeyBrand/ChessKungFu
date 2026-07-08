@@ -1,11 +1,12 @@
 from iteration_3.logic import is_valid_move as _is_valid_move, process_click as _process_click, processer
+from iteration_1.logic import WHITE, BLACK, board_piece_parsing
 
 def is_valid_move(piece, src, dst, board=None):
     if piece[1] == 'P':
         sc, sr = src
         dc, dr = dst
         col_diff = abs(dc - sc)
-        direction = -1 if piece[0] == 'w' else 1
+        direction = -1 if piece[0] == WHITE else 1
         if col_diff == 0:
             if board is not None and board[dr][dc] != '.':
                 return False

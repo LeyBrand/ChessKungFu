@@ -1,17 +1,20 @@
 import sys
 
+VALID_PIECES = {'.', 'wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'}
+
+WHITE = 'w'
+BLACK = 'b'
+
 def processer():
     input_data = sys.stdin.read()
     print(input_data)
 
 
-def board_piecec_parsing(board_text):
+def board_piece_parsing(board_text):
 
     lines = [line.split() for line in board_text.strip().splitlines()]
     if not lines:
         return None
-    
-    valid_pieces = {'.', 'wK', 'wQ', 'wR', 'wB', 'wN', 'wP', 'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'}
 
     expected_cols = len(lines[0])
 
@@ -20,10 +23,12 @@ def board_piecec_parsing(board_text):
             print("ERROR ROW_WIDTH_MISMATCH")
             sys.exit()
         for token in line:
-            if token not in valid_pieces:
+            if token not in VALID_PIECES:
                 print("ERROR UNKNOWN_TOKEN")
                 sys.exit()
     return lines
+
+board_piecec_parsing = board_piece_parsing
 
 def print_board(board):
     for row in board:

@@ -56,3 +56,18 @@ def is_valid_move(piece, src, dst, board = None):
             return False
         return is_path_clear(src, dst, board)
     return rule(col_diff, row_diff)
+
+def is_in_movement(src, pending_moves):
+    return any(src == move[1] for move in pending_moves)
+
+def add_pending_move(piece, src, dst, game_time, pending_moves):
+    pending_moves.append((piece, src, dst, game_time + 1000 * (abs(dst[0] - src[0]) + abs(dst[1] - src[1]))))
+
+def apply_arrived_moves(board, pending_moves, game_time):
+    for move in pending_moves[:]:
+        piece, src, dst, arrival = move
+        if game_time >= arrival:
+            board[dst[1]][dst[0]] = piece
+            board[src[1]][src[0]] = '.'
+            pending_moves.remove(move)
+

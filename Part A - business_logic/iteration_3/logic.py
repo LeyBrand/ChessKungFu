@@ -1,24 +1,23 @@
 import sys
 from iteration_2.logic import processer, process_click as _process_click
 
+PIECE_RULES = {
+    'K': lambda cd, rd: cd <= 1 and rd <= 1,
+    'R': lambda cd, rd: cd == 0 or rd == 0,
+    'B': lambda cd, rd: cd == rd,
+    'Q': lambda cd, rd: cd == 0 or rd == 0 or cd == rd,
+    'N': lambda cd, rd: (cd == 2 and rd == 1) or (cd == 1 and rd == 2)
+}
+
 def is_valid_move(piece, src, dst, board = None):
     sc, sr = src
     dc, dr = dst
     col_diff = abs(dc - sc)
     row_diff = abs(dr - sr)
 
-    p = piece[1]
-    if p == 'K':
-        return col_diff <= 1 and row_diff <= 1
-    if p == 'R':
-        return col_diff == 0 or row_diff == 0
-    if p == 'B':
-        return col_diff == row_diff
-    if p == 'Q':
-        return col_diff == 0 or row_diff == 0 or col_diff == row_diff
-    if p == 'N':
-        return (col_diff == 2 and row_diff == 1) or (col_diff == 1 and row_diff == 2)
-    return True
+    rule = PIECE_RULES.get(piece[1])
+    
+    return rule(col_diff, row_diff) if rule else True
 
 def process_click(x, y, board, selected_pos, validator = None):
     return _process_click(x, y, board, selected_pos, validator = validator or is_valid_move)

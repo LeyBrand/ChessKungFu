@@ -1,5 +1,5 @@
 import sys
-from iteration_1.logic import print_board, board_piecec_parsing
+from iteration_1.logic import print_board, board_piece_parsing
 
 def process_click(x, y, board, selected_pos, validator = None):
     col = x // 100
@@ -19,13 +19,13 @@ def process_click(x, y, board, selected_pos, validator = None):
             return None
     return selected_pos
 
-def processer(click_handler = None):
+def processer(click_handler = None, print_handler = None):
     if click_handler is None:
         click_handler = process_click
     input_data = sys.stdin.read()
     b_idx = input_data.find("Board:")
     c_idx = input_data.find("Commands:")
-    parsed_board = board_piecec_parsing(input_data[b_idx + len("Board:") : c_idx].strip())
+    parsed_board = board_piece_parsing(input_data[b_idx + len("Board:") : c_idx].strip())
 
     selected_pos = None
     game_time = 0
@@ -40,14 +40,17 @@ def processer(click_handler = None):
 
         if cmd == "click":
             x, y = int(parts[1]), int(parts[2])
-            selected_pos = click_handler(x, y, parsed_board, selected_pos)
+            selected_pos = click_handler(x, y, parsed_board, selected_pos, game_time)
 
         elif cmd == "wait":
             ms = int(parts[1])
             game_time += ms
 
         elif cmd == "print" and parts[1] == "board":
-            print_board(parsed_board)
+            if print_handler:
+                print_handler(parsed_board, game_time)
+            else:
+                print_board(parsed_board)
 
 
 if __name__ == "__main__":
