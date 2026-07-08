@@ -68,10 +68,19 @@ def add_pending_move(piece, src, dst, game_time, pending_moves):
     pending_moves.append((piece, src, dst, game_time + 1000 * (abs(dst[0] - src[0]) + abs(dst[1] - src[1]))))
 
 def apply_arrived_moves(board, pending_moves, game_time):
-    for move in pending_moves[:]:
+    arrived = [m for m in pending_moves if m[3] <= game_time]
+    arrived.sort(key = lambda m: m[3])
+    for move in arrived:
         piece, src, dst, arrival = move
-        if game_time >= arrival:
-            board[dst[1]][dst[0]] = piece
-            board[src[1]][src[0]] = '.'
+        if not is_valid_move(piece, src, dst, board):
             pending_moves.remove(move)
+            continue
+        dst_piece = board[dst[1]][dst[0]]
+        if dst_piece != '.' and is_same_color(piece, dst_piece):
+            pending_moves.remove(move)
+            continue
+        board[dst[1]][dst[0]] = piece
+        board[src[1]][src[0]] = '.'
+        pending_moves.remove(move)
+            
 
