@@ -60,6 +60,10 @@ def is_valid_move(piece, src, dst, board = None):
 def is_in_movement(src, pending_moves):
     return any(src == move[1] for move in pending_moves)
 
+def is_dst_taken(dst, pending_moves):
+    dc, dr = dst
+    return any(move[2][0] == dc or move[2][1] == dr for move in pending_moves)
+
 def add_pending_move(piece, src, dst, game_time, pending_moves):
     pending_moves.append((piece, src, dst, game_time + 1000 * (abs(dst[0] - src[0]) + abs(dst[1] - src[1]))))
 

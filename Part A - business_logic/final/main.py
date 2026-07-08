@@ -13,7 +13,7 @@ def processer(game_factory = None):
     
     game = game_factory(board) if game_factory else ChessGame(board)
 
-    for line in input_data[c_idx + len("Commands:"):].strip():
+    for line in input_data[c_idx + len("Commands:"):].strip().splitlines():
         parts = line.split()
         if not parts:
             continue
@@ -22,7 +22,7 @@ def processer(game_factory = None):
         elif parts[0] == "wait":
             game.game_time += int(parts[1])
         elif parts[0] == "print" and parts[1] == "board":
-            print_board(game.board)
+            game.print_board()
 
 if __name__ == "__main__":
     processer()

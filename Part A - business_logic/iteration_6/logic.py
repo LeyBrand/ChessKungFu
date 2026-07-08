@@ -16,10 +16,10 @@ def apply_arrived_moves(board, pending_moves, game_time):
             board[src[1]][src[0]] = '.'
             pending_moves.remove(move)
 
-def processer():
+def processer(click_handler=None, print_handler=None):
     pending_moves = []
 
-    def click_handler(x, y, board, selected_pos, game_time):
+    def default_click_handler(x, y, board, selected_pos, game_time):
         col, row = x // 100, y // 100
         if selected_pos is None:
             if board[row][col] != '.' and not is_in_movement((col, row), pending_moves):
@@ -31,11 +31,14 @@ def processer():
                 return None
         return selected_pos
 
-    def print_handler(board, game_time):
+    def default_print_handler(board, game_time):
         apply_arrived_moves(board, pending_moves, game_time)
         print_board(board)
 
-    _processer(click_handler=click_handler, print_handler=print_handler)
+    _processer(
+        click_handler=click_handler or default_click_handler,
+        print_handler=print_handler or default_print_handler
+    )
 
 if __name__ == '__main__':
     processer()
