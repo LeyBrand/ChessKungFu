@@ -1,4 +1,6 @@
-from input.controller import handle
-def run(commands, board):
+from input.controller import Controller
+controller = Controller()
+def run(board, commands):
     for command in commands:
-        handle(command, board)
+        controller.handle(command, board)
+        

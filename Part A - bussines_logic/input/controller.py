@@ -1,5 +1,5 @@
 from constants import EMPTY_CELL
-from input.board_mapper import pixel_to_board
+from input.board_mapper import pixel_to_cell
 
 class Controller:
     def __init__(self):
@@ -18,7 +18,7 @@ class Controller:
 
     def _handle_click(self, args, board):
         x, y = int(args[0]), int(args[1])
-        col, row = pixel_to_board(x, y)
+        col, row = pixel_to_cell(x, y)
         self.click((row, col), board)
 
     def _handle_print(self, args, board):

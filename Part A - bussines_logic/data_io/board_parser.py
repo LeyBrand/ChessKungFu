@@ -4,7 +4,7 @@ from model.board import Board
 from model.piece import Piece
 from model.position import position
 
-def parse(board_text):
+def parse_board(board_text):
     lines = [line.split() for line in board_text.strip().splitlines() if line.strip()]
     if not lines:
         return None
@@ -16,12 +16,12 @@ def parse(board_text):
     for r, line in enumerate(lines):
         if len(line) != expected_cols:
             print("ERROR ROW_WIDTH_MISMATCH")
-            sys.exit()
+            return None
             
         for c, token in enumerate(line):
             if token not in VALID_PIECES:
                 print("ERROR UNKNOWN_TOKEN")
-                sys.exit()
+                return None
             
             if token != EMPTY_CELL:
                 color = "white" if token.startswith(WHITE) else "black"

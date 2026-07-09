@@ -2,6 +2,7 @@ from constants import EMPTY_CELL, WHITE, BLACK
 from model.position import position
 
 def print_board(board):
+    print(f"DEBUG: Printing board with {board.cols} columns")
     for r in range(board.rows):
         row_tokens = []
         for c in range(board.cols):

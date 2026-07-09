@@ -1,4 +1,4 @@
-def parse(commands_text):
+def parse_commands(commands_text):
     commands = []
     for line in commands_text.strip().splitlines():
         line = line.strip()
