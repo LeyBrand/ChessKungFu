@@ -1,3 +1,6 @@
+EMPTY_CELL = '.'
+MOVE_MS = 1000
+
 VALID_PIECES = {
     '.', 
     'wK', 'wQ', 'wR', 'wB', 'wN', 'wP',

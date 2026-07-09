@@ -5,7 +5,6 @@ from model.piece import Piece
 from model.position import position
 
 def parse(board_text):
-    # פיצול השורות וניקוי
     lines = [line.split() for line in board_text.strip().splitlines() if line.strip()]
     if not lines:
         return None
@@ -15,18 +14,15 @@ def parse(board_text):
     board = Board(rows, expected_cols)
     
     for r, line in enumerate(lines):
-        # בדיקת תקינות רוחב שורה (כפי שהיה בקוד שלך)
         if len(line) != expected_cols:
             print("ERROR ROW_WIDTH_MISMATCH")
             sys.exit()
             
         for c, token in enumerate(line):
-            # בדיקת תקינות טוקן מול הקבועים
             if token not in VALID_PIECES:
                 print("ERROR UNKNOWN_TOKEN")
                 sys.exit()
             
-            # הצבת כלי במידה ואינו תא ריק
             if token != EMPTY_CELL:
                 color = "white" if token.startswith(WHITE) else "black"
                 kind = token[1:]
