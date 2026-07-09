@@ -1,21 +1,10 @@
+from constants import VALID_PIECES
 import sys
 
-WHITE = 'w'
-BLACK = 'b'
-
-VALID_PIECES = {
-    '.', 
-    'wK', 'wQ', 'wR', 'wB', 'wN', 'wP',
-    'bK', 'bQ', 'bR', 'bB', 'bN', 'bP'
-}
-
-CELL_SIZE = 100
-
-def board_piece_parsing(board_text):
+def parse(board_text):
     lines = [line.split() for line in board_text.strip().splitlines()]
     if not lines:
         return None
-    
     expected_cols = len(lines[0])
     for line in lines:
         if len(line) != expected_cols:
@@ -26,7 +15,3 @@ def board_piece_parsing(board_text):
                 print("ERROR UNKNOWN_TOKEN")
                 sys.exit()
     return lines
-
-def print_board(board):
-    for row in board:
-        print(" ".join(row))
