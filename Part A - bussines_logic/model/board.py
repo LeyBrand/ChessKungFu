@@ -25,13 +25,6 @@ class Board:
             del self.pieces[(position.col, position.row)]
 
     def legal_destinations(self, piece):
-        # מחזירה רשימה של אובייקטי position שחוקי לכלי להגיע אליהם
-        # כרגע זו רשימה ריקה, נמלא אותה בהמשך לפי סוג הכלי
-        destinations = []
-        
-        # כאן בעתיד נפעיל את ה-PieceRules המתאים
-        # לדוגמה:
-        # if piece.kind == "rook":
-        #    destinations = rook_rule.get_moves(self, piece)
-        
-        return destinations
+        if piece.kind == "rook":
+            return get_rook_moves(self, piece)
+        return [] # כאן נוסיף בהמשך חוקים לשאר

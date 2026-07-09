@@ -1,15 +1,25 @@
 from model.position import position
 
-def legal_destinations(piece, board):
-        destinations = []
-        col, row = piece.cell.col, piece.cell.row
-        for direaction in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            c, r = col + direaction[0], row + direaction[1]
-            while 0 <= c < board.cols and 0 <= r < board.rows:
-                  target = board.get_piece_at(position(c, r))
-                  destinations.append(position(c, r))
-                  if target is not None:
-                      break
-                  c += direaction[0]
-                  r += direaction[1]
-        return destinations
+def get_rook_moves(board, piece):
+    moves = []
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # מעלה, מטה, ימין, שמאל
+    
+    for dc, dr in directions:
+        curr_col, curr_row = piece.position.col, piece.position.row
+        while True:
+            curr_col += dc
+            curr_row += dr
+            new_pos = position(curr_col, curr_row)
+            
+            if not board.in_bounds(new_pos):
+                break
+            
+            target = board.get_piece_at(new_pos)
+            if target is None:
+                moves.append(new_pos)
+            else:
+                # אם יש כלי, הוא עוצר את התנועה (אפשר להוסיף לוגיקה של אכילה כאן)
+                if target.color != piece.color:
+                    moves.append(new_pos)
+                break
+    return moves
