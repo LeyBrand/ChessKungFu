@@ -1,3 +1,5 @@
+from rules.rook_rule import get_rook_moves
+
 class Board:
     def __init__(self, cols, rows):
         self.cols = cols
