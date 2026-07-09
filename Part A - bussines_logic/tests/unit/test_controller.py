@@ -2,7 +2,7 @@ import unittest
 from model.board import Board
 from model.piece import Piece
 from model.position import position
-import input.controller  # שימי לב: ייבוא של כל המודול
+import input.controller
 
 class TestControllerFlow(unittest.TestCase):
     def setUp(self):
@@ -12,15 +12,11 @@ class TestControllerFlow(unittest.TestCase):
         input.controller.selected_pos = None # איפוס ישיר דרך המודול
 
     def test_move_rook_success(self):
-        # 1. לחיצה ראשונה
         input.controller.click(position(0, 0), self.board)
-        # בדיקה דרך המודול
         self.assertEqual(input.controller.selected_pos, position(0, 0))
         
-        # 2. לחיצה שנייה
         input.controller.click(position(0, 5), self.board)
         
-        # בדיקה שהכלי זז
         self.assertIsNone(self.board.get_piece_at(position(0, 0)))
         self.assertEqual(self.board.get_piece_at(position(0, 5)), self.rook)
         self.assertIsNone(input.controller.selected_pos)
