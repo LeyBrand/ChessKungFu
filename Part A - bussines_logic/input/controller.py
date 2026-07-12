@@ -22,7 +22,8 @@ class Controller:
         actions = {
             "click": self._handle_click,
             "print": self._handle_print,
-            "wait": self._handle_wait
+            "wait": self._handle_wait,
+            "jump": self._handle_jump
         }
 
         if name in actions:
@@ -75,6 +76,10 @@ class Controller:
     def _handle_print(self, args, board):
         from data_io.board_printer import print_board
         print_board(board)
+
+    def _handle_jump(self, args, board):
+        col, row = int(args[0]), int(args[1])
+        
 
     def click(self, position, board):
         if self.game_over:
