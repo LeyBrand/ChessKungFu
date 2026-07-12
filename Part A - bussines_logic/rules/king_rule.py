@@ -2,7 +2,7 @@ from model.position import Position
 
 def get_king_moves(board, piece):
     moves = []
-    # המלך יכול לזוז משבצת אחת לכל הכיוונים (אופקי, אנכי ואלכסוני)
+
     directions = [
         (0, 1), (0, -1), (1, 0), (-1, 0),  # ישרים
         (1, 1), (1, -1), (-1, 1), (-1, -1) # אלכסונים
@@ -25,5 +25,4 @@ def get_king_moves(board, piece):
             # 3. אם יש כלי של היריב - אפשר לאכול (אופציונלי, בהתאם לחוקים שלך)
             elif target.color != piece.color:
                 moves.append(new_pos)
-                
     return moves

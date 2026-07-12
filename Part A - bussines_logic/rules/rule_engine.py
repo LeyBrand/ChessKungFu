@@ -1,5 +1,4 @@
 def validate_move(board, piece, destination):
-
     if not board.in_bounds(destination):
         return "outside_board"
 
@@ -7,7 +6,13 @@ def validate_move(board, piece, destination):
         return "empty_source"
     
     legal_moves = board.legal_destinations(piece)
-    if destination not in legal_moves:
+    is_legal = False
+    for move in legal_moves:
+        if move.col == destination.col and move.row == destination.row:
+            is_legal = True
+            break
+            
+    if not is_legal:
         return "illegal_piece_move"
 
     if board.is_friendly_destination(piece, destination):

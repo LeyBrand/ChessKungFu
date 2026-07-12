@@ -1,4 +1,4 @@
-from model.position import position
+from model.position import Position
 
 def get_rook_moves(board, piece):
     moves = []
@@ -9,7 +9,7 @@ def get_rook_moves(board, piece):
         while True:
             curr_col += dc
             curr_row += dr
-            new_pos = position(curr_col, curr_row)
+            new_pos = Position(curr_col, curr_row)
             
             if not board.in_bounds(new_pos):
                 break

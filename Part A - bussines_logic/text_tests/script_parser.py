@@ -8,5 +8,7 @@ def parse(raw_script):
     
     board = parse_board(board_text)
     commands = parse_commands(commands_text)
-
-    return board, commands
+    
+    if board and commands:
+        return board, commands
+    return None, None
