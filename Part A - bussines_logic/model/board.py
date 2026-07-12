@@ -3,6 +3,7 @@ from rules.king_rule import get_king_moves
 from rules.knight_rule import get_knight_moves
 from rules.bishop_rule import get_bishop_moves
 from rules.queen_rule import get_queen_moves
+from rules.pawn_rule import get_pawn_moves
 
 class Board:
     def __init__(self, rows, cols):
@@ -41,4 +42,6 @@ class Board:
             return get_bishop_moves(self, piece)
         if piece.kind == "Q":
             return get_queen_moves(self, piece)
+        if piece.kind == "P":
+            return get_pawn_moves(self, piece)
         return [] # כאן נוסיף בהמשך חוקים לשאר
