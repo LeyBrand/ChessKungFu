@@ -36,33 +36,28 @@ class Controller:
         if name in actions:
             actions[name](args, board)
     
+    # input/controller.py
     def _handle_click(self, args, board):
-        """בחר piece או בצע move"""
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)
         position = Position(col, row)
         
         if not board.in_bounds(position):
-            self.current_selection = None
+            self.engine.current_selection = None  # ← עדכן engine
             return
         
         piece = board.get_piece_at(position)
         
-        if self.current_selection is None:
-            # בחר piece
+        if self.engine.current_selection is None:  # ← קרא מengine
             if piece is not None:
-                self.current_selection = position
+                self.engine.current_selection = position
         else:
-            # נסה לבצע move
-            selected_piece = board.get_piece_at(self.current_selection)
+            selected_piece = board.get_piece_at(self.engine.current_selection)
             if piece and selected_piece and piece.color == selected_piece.color:
-                # אותו צבע - החלף בחירה
-                self.current_selection = position
+                self.engine.current_selection = position
             else:
-                # עבור לengine לבדיקה
-                result = self.engine.request_move(self.current_selection, position)
-                self.current_selection = None
-    
+                result = self.engine.request_move(self.engine.current_selection, position)
+                self.engine.current_selection = None
     def _handle_wait(self, args, board):
         """צפה כמה מילישניות"""
         ms = int(args[0])
