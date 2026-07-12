@@ -1,125 +1,79 @@
 from constants import EMPTY_CELL
 from input.board_mapper import pixel_to_cell
-from model.position import *
+from model.position import Position
 from model.piece import PieceState
-from realtime.real_time_arbiter import RealTimeArbiter
-from realtime.motion import Motion
+from engine.game_engine import GameEngine
 
 class Controller:
-    def __init__(self):
-        self.selected_pos = None
-        # רק תנועה אחת גלובלית פעילה בכל רגע - זה "המסלול המשותף"
-        self.active_motion = None
-        # תנועות שממתינות שהמסלול יתפנה, לפי סדר הגעה
-        self.queued_moves = []
-        # ברגע שמלך נאכל, המשחק נגמר וכל קלט נוסף מתעלם
-        self.game_over = False
-
+    """
+    קונטרולר - מקבל input וקוראה לengine
+    לא מחזיק state! ה-engine עושה את זה
+    """
+    def __init__(self, engine: GameEngine):
+        self.engine = engine  # ← משתמש בengine שהעבירו לו
+        self.current_selection = None
+    
     def handle(self, command, board):
-        self._resolve_motions(board)
-
+        """ממשק קלט ראשי"""
         name = command["name"]
+        args = command.get("args", [])
+        
         actions = {
             "click": self._handle_click,
             "print": self._handle_print,
             "wait": self._handle_wait,
-            "jump": self._handle_jump
+            "jump": self._handle_jump,
+            "snapshot": self._handle_snapshot
         }
-
+        
         if name in actions:
-            actions[name](command["args"], board)
-
-    def _resolve_motions(self, board):
-        arbiter = RealTimeArbiter.instance()
-        now = arbiter.now()
-
-        # ייתכן שכמה תנועות תורניות יסתיימו באותה קריאה (למשל אחרי wait ארוך)
-        while self.active_motion and self.active_motion.is_complete(now):
-            motion = self.active_motion
-
-            # מזהים אכילה של מלך *לפני* שדורסים את המשבצת
-            captured_piece = board.get_piece_at(motion.end_pos)
-
-            board.remove_piece(motion.start_pos)
-            motion.piece.move_to(motion.end_pos)
-            board.place_piece(motion.piece, motion.end_pos)
-            motion.piece.set_state(PieceState.IDLE)
-            self.active_motion = None
-
-            # הכתרה - רגלי שמגיע לשורה האחרונה של היריב הופך למלכה
-            if motion.piece.kind == "P":
-                promotion_row = 0 if motion.piece.color == "white" else board.rows - 1
-                if motion.end_pos.row == promotion_row:
-                    motion.piece.kind = "Q"
-
-            if captured_piece is not None and captured_piece.kind == "K":
-                self.game_over = True
-                self.queued_moves = []  # מבטלים כל תנועה ממתינה - המשחק נגמר
-
-            # המסלול התפנה - אם יש תנועה בתור והמשחק עדיין פעיל, היא מתחילה מיד
-            if not self.game_over and self.queued_moves:
-                piece, start_pos, destination = self.queued_moves.pop(0)
-                new_motion = Motion(piece, start_pos, destination, now)
-                piece.set_state(PieceState.MOVING)
-                self.active_motion = new_motion
-
-    def _handle_wait(self, args, board):
-        ms = int(args[0])
-        RealTimeArbiter.instance().advance(ms)
-        self._resolve_motions(board)
-
+            actions[name](args, board)
+    
     def _handle_click(self, args, board):
+        """בחר piece או בצע move"""
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)
-        self.click(Position(col, row), board)
-
+        position = Position(col, row)
+        
+        if not board.in_bounds(position):
+            self.current_selection = None
+            return
+        
+        piece = board.get_piece_at(position)
+        
+        if self.current_selection is None:
+            # בחר piece
+            if piece is not None:
+                self.current_selection = position
+        else:
+            # נסה לבצע move
+            selected_piece = board.get_piece_at(self.current_selection)
+            if piece and selected_piece and piece.color == selected_piece.color:
+                # אותו צבע - החלף בחירה
+                self.current_selection = position
+            else:
+                # עבור לengine לבדיקה
+                result = self.engine.request_move(self.current_selection, position)
+                # לא להדפיס כאן - זה מפריע לtests
+                self.current_selection = None
+    
+    def _handle_wait(self, args, board):
+        """צפה כמה מילישניות"""
+        ms = int(args[0])
+        self.engine.wait(ms)  # ← engine עושה את כל העבודה
+        # לא להדפיס כאן - זה מפריע לtests
+    
     def _handle_print(self, args, board):
+        """הדפס את הboard"""
         from data_io.board_printer import print_board
         print_board(board)
-
+    
+    def _handle_snapshot(self, args, board):
+        """שמור snapshot"""
+        snapshot = self.engine.snapshot()
+        # יכול להדפיס debug info אם צריך
+        return snapshot
+    
     def _handle_jump(self, args, board):
-        col, row = int(args[0]), int(args[1])
-        
-
-    def click(self, position, board):
-        if self.game_over:
-            return
-
-        if not board.in_bounds(position):
-            self.selected_pos = None
-            return
-
-        clicked_piece = board.get_piece_at(position)
-        is_empty = clicked_piece is None or clicked_piece == EMPTY_CELL
-
-        if self.selected_pos is None:
-            if not is_empty:
-                self.selected_pos = position
-        else:
-            selected_piece = board.get_piece_at(self.selected_pos)
-
-            if not is_empty and clicked_piece.color == selected_piece.color:
-                if position == self.selected_pos:
-                    self.selected_pos = None  # ביטול בחירה בלחיצה על אותו כלי
-                else:
-                    self.selected_pos = position  # החלפת בחירה לכלי החדש
-
-            # אם לחצנו על משבצת ריקה או כלי אויב -> מבצעים תנועה
-            else:
-                from rules.rule_engine import validate_move
-                result = validate_move(board, selected_piece, position)
-
-                if result == "ok":
-                    now = RealTimeArbiter.instance().now()
-                    selected_piece.set_state(PieceState.MOVING)
-
-                    if self.active_motion is None:
-                        # המסלול פנוי - מתחילים לזוז מיד
-                        motion = Motion(selected_piece, self.selected_pos, position, now)
-                        self.active_motion = motion
-                    else:
-                        # המסלול תפוס - נכנסים לתור, נתחיל רק כשיתפנה
-                        self.queued_moves.append((selected_piece, self.selected_pos, position))
-
-                # בסיום ניסיון תנועה, תמיד מנקים את הבחירה
-                self.selected_pos = None
+        """עדיין לא מובנה"""
+        pass
