@@ -1,4 +1,6 @@
-# Part A - bussines_logic/engine/game_engine.py
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from constants import EMPTY_CELL, MOVE_MS
 from realtime.real_time_arbiter import RealTimeArbiter
