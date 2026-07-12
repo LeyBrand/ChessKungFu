@@ -7,7 +7,6 @@ class Motion:
         self.end_pos = end_pos
         self.start_time = start_time
 
-        # מרחק בתאים (צ'בישב) - קובע כמה זמן התנועה תיקח
         distance = max(abs(end_pos.col - start_pos.col), abs(end_pos.row - start_pos.row))
         self.duration_ms = distance * MOVE_MS
 

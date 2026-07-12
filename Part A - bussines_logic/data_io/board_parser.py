@@ -1,5 +1,4 @@
-from constants import EMPTY_CELL, VALID_PIECES, WHITE, BLACK
-import sys
+from constants import EMPTY_CELL, VALID_PIECES, WHITE
 from model.board import Board
 from model.piece import Piece
 from model.position import Position

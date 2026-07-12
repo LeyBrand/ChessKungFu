@@ -9,7 +9,6 @@ from model.piece import PieceState
 
 
 class MoveResult:
-    """תוצאה של ניסיון move"""
     def __init__(self, success, message):
         self.success = success
         self.message = message
@@ -19,28 +18,23 @@ class GameEngine:
     def __init__(self, state):
         self.state = state
         self.arbiter = RealTimeArbiter(self.state.board)
-        self.current_selection = None  # ← העבר מ-Controller
+        self.current_selection = None
         self.move_history = []
-        # כלים ש"קפצו" וכרגע נעדרים זמנית מהלוח (עד שינחתו בחזרה)
-        # כל איבר: {"piece": Piece, "origin": Position, "land_time": float}
         self.airborne = []
 
     def has_motion_on_path(self, from_pos, to_pos):
-        """בדוק אם כבר יש motion בדרך"""
         for motion in self.arbiter.get_active_motions():
             if motion.start_pos == from_pos or motion.end_pos == to_pos:
                 return True
         return False
 
     def _is_reserved_by_friend(self, position, color):
-        """בדוק אם המשבצת שמורה לכלי ידידותי שכרגע 'באוויר'"""
         for entry in self.airborne:
             if entry["origin"] == position and entry["piece"].color == color:
                 return True
         return False
 
     def request_move(self, from_pos, to_pos):
-        """רק validation - לא עדכן piece state!"""
         if self.state.game_over:
             return MoveResult(False, "game_over")
 
@@ -54,7 +48,6 @@ class GameEngine:
         if self.has_motion_on_path(from_pos, to_pos):
             return MoveResult(False, "motion_in_progress")
 
-        # אי אפשר לזוז למשבצת ששמורה לכלי ידידותי ש"באוויר"
         if self._is_reserved_by_friend(to_pos, piece.color):
             return MoveResult(False, "reserved_square")
 
@@ -62,7 +55,6 @@ class GameEngine:
         if validate_move(self.state.board, piece, to_pos) != "ok":
             return MoveResult(False, "invalid_move")
 
-        # צור Motion - אל תעדכן piece state!
         now = self.arbiter.now()
         motion = Motion(piece, from_pos, to_pos, now)
         self.arbiter.add_motion(motion)
@@ -70,13 +62,11 @@ class GameEngine:
         return MoveResult(True, "ok")
 
     def wait(self, ms):
-        """צפה ms מילישניות - arbiter עושה הכל"""
         if self.arbiter.tick(ms):
             self.state.game_over = True
         self._resolve_airborne()
 
     def _resolve_airborne(self):
-        """נחיתה של כלים שהיו 'באוויר' - אם אויב תפס את המשבצת בינתיים, הוא נאכל"""
         now = self.arbiter.now()
         still_airborne = []
 
@@ -97,7 +87,6 @@ class GameEngine:
         self.airborne = still_airborne
 
     def snapshot(self):
-        """צור תמונת מזל של כל ה-state"""
         pieces_state = {}
         for (col, row), piece in self.state.board.pieces.items():
             pieces_state[(col, row)] = {
@@ -126,10 +115,6 @@ class GameEngine:
         }
 
     def jump(self, pos):
-        """
-        קפיצה - הכלי נעדר זמנית מהלוח (MOVE_MS) וחוזר לאותה משבצת.
-        אם אויב תפס את המשבצת בינתיים - הוא נאכל בנחיתה.
-        """
         if self.state.game_over:
             return MoveResult(False, "game_over")
 
@@ -137,7 +122,6 @@ class GameEngine:
         if piece is None:
             return MoveResult(False, "empty_source")
 
-        # אי אפשר לקפוץ עם כלי שכבר בתנועה
         if self.has_motion_on_path(pos, pos):
             return MoveResult(False, "motion_in_progress")
 

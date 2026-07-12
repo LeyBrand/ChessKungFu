@@ -44,4 +44,4 @@ class Board:
             return get_queen_moves(self, piece)
         if piece.kind == "P":
             return get_pawn_moves(self, piece)
-        return [] # כאן נוסיף בהמשך חוקים לשאר
+        return [] 

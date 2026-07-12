@@ -3,7 +3,6 @@ class PieceState:
     MOVING = "moving"
     CAPTURED = "captured"
 
-# model/piece.py
 class Piece:
     def __init__(self, id, color, kind, position):
         self.id = id

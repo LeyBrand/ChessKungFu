@@ -2,7 +2,7 @@ from model.position import Position
 
 def get_rook_moves(board, piece):
     moves = []
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # מעלה, מטה, ימין, שמאל
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     
     for dc, dr in directions:
         curr_col, curr_row = piece.position.col, piece.position.row
@@ -18,7 +18,6 @@ def get_rook_moves(board, piece):
             if target is None:
                 moves.append(new_pos)
             else:
-                # אם יש כלי, הוא עוצר את התנועה (אפשר להוסיף לוגיקה של אכילה כאן)
                 if target.color != piece.color:
                     moves.append(new_pos)
                 break

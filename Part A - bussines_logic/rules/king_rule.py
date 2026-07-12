@@ -4,8 +4,8 @@ def get_king_moves(board, piece):
     moves = []
 
     directions = [
-        (0, 1), (0, -1), (1, 0), (-1, 0),  # ישרים
-        (1, 1), (1, -1), (-1, 1), (-1, -1) # אלכסונים
+        (0, 1), (0, -1), (1, 0), (-1, 0),  
+        (1, 1), (1, -1), (-1, 1), (-1, -1) 
     ]
     
     curr_col, curr_row = piece.position.col, piece.position.row
@@ -15,14 +15,11 @@ def get_king_moves(board, piece):
         new_row = curr_row + dr
         new_pos = Position(new_col, new_row)
         
-        # 1. בדיקה שהמיקום בתוך הלוח
         if board.in_bounds(new_pos):
             target = board.get_piece_at(new_pos)
             
-            # 2. אם המשבצת ריקה - אפשר לזוז
             if target is None:
                 moves.append(new_pos)
-            # 3. אם יש כלי של היריב - אפשר לאכול (אופציונלי, בהתאם לחוקים שלך)
             elif target.color != piece.color:
                 moves.append(new_pos)
     return moves
