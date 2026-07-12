@@ -26,23 +26,26 @@ class Controller:
         print_board(board)
 
     def click(self, position, board):
+        if not board.in_bounds(position):
+            self.selected_pos = None
+            return
+        
+        clicked_piece = board.get_piece_at(position)
+
         if self.selected_pos is None:
-            if board.in_bounds(position):
-                piece = board.get_piece_at(position)
-                if piece is not None and piece != EMPTY_CELL:
-                    self.selected_pos = position
+            if clicked_piece is not None and clicked_piece != EMPTY_CELL:
+                self.selected_pos = position
         else:
-            if board.in_bounds(position):
-                piece = board.get_piece_at(self.selected_pos)
-                
+            if clicked_piece is not None and clicked_piece != EMPTY_CELL:
+                self.selected_pos = position
+            else:
+                piece_to_move = board.get_piece_at(self.selected_pos)
                 from rules.rule_engine import validate_move
-                result = validate_move(board, piece, position)
+                result = validate_move(board, piece_to_move, position)
                 
                 if result == "ok":
                     board.remove_piece(self.selected_pos)
-                    board.place_piece(piece, position)
+                    board.place_piece(piece_to_move, position)
                     self.selected_pos = None  # איפוס לאחר מהלך מוצלח
                 else:
                     self.selected_pos = None 
-            else:
-                self.selected_pos = None
