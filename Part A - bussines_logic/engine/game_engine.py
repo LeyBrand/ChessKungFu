@@ -1,137 +1,163 @@
+# Part A - bussines_logic/engine/game_engine.py
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from constants import EMPTY_CELL, MOVE_MS
+from constants import MOVE_MS
 from realtime.real_time_arbiter import RealTimeArbiter
 from realtime.motion import Motion
+from model.game_state import GameState
 from model.piece import PieceState
 
+
 class MoveResult:
+    """תוצאה של ניסיון move"""
     def __init__(self, success, message):
         self.success = success
         self.message = message
 
+
 class GameEngine:
     """
-    מנוע המשחק - מחזיק את ה-state של המשחק
-    זה המקום היחיד שמחזיק את הtruth של המצב
+    מנוע המשחק - אחראי על כל ה-logic של המשחק
+    
+    Malki's Architecture:
+    - מחזיק GameState (שמכיל board + game_over)
+    - מחזיק RealTimeArbiter (שמנהל את ה-motions)
+    - אחראי על motion validation ו-completion
     """
+    
     def __init__(self, board):
-        self.board = board
-        self.arbiter = RealTimeArbiter.instance()
+        """
+        אתחול engine עם board
+        יוצר GameState בתוך Engine
+        """
+        self.state = GameState(board)
+        self.arbiter = RealTimeArbiter(self.state.board)
         
-        # STATE - זה מה שמשתמר בין קריאות
-        self.selected_pos = None
-        self.active_motion = None
-        self.queued_moves = []
-        self.game_over = False
-        
-        # History לצורך snapshot
+        # History לצורך debug/snapshot
         self.move_history = []
+    
+    def has_motion_on_path(self, from_pos, to_pos):
+        """
+        בדוק אם כבר יש motion בדרך
+        זה חשוב כדי לא לחסום את אותה משבצת פעמיים
+        """
+        for motion in self.arbiter.get_active_motions():
+            # בדוק אם המשבצת המוצא או היעד כבר בשימוש
+            if motion.start_pos == from_pos or motion.end_pos == to_pos:
+                return True
+        return False
     
     def request_move(self, from_pos, to_pos):
         """
-        בקש move - זה מה שכל קלט (click/jump) חייב לעבור דרכו
+        בקש move חדש
+        החזר MoveResult עם success flag
         
-        החזיר MoveResult כדי שcontroller יוכל להציג הודעות
-        אבל ה-state עצמו נשמר כאן
+        השלבים:
+        1. בדוק אם המשחק הסתיים
+        2. בדוק אם יש motion בדרך
+        3. בדוק אם move חוקי (דרך rule_engine)
+        4. צור Motion וקבע אותו
         """
-        # בדוק אם המשחק הסתיים
-        if self.game_over:
+        # שלב 1: בדוק אם המשחק הסתיים
+        if self.state.game_over:
             return MoveResult(False, "game_over")
         
-        # בדוק אם הposition חוקי
-        if not self.board.in_bounds(from_pos) or not self.board.in_bounds(to_pos):
+        # שלב 2: בדוק אם הposition חוקי
+        if not self.state.board.in_bounds(from_pos) or not self.state.board.in_bounds(to_pos):
             return MoveResult(False, "out_of_bounds")
         
-        piece = self.board.get_piece_at(from_pos)
+        # שלב 3: בדוק אם יש piece בموضع המוצא
+        piece = self.state.board.get_piece_at(from_pos)
         if piece is None:
             return MoveResult(False, "empty_source")
         
-        # בדוק אם move חוקי (דרך rule_engine)
+        # שלב 4: בדוק אם כבר יש motion בדרך
+        if self.has_motion_on_path(from_pos, to_pos):
+            return MoveResult(False, "motion_in_progress")
+        
+        # שלב 5: בדוק אם move חוקי (דרך rule_engine)
         from rules.rule_engine import validate_move
-        validation_result = validate_move(self.board, piece, to_pos)
+        validation_result = validate_move(self.state.board, piece, to_pos)
         if validation_result != "ok":
             return MoveResult(False, validation_result)
         
-        # אתה יכול לבצע move! אבל אולי יש motion פעיל
+        # שלב 6: צור Motion חדש
         now = self.arbiter.now()
-        piece.set_state(PieceState.MOVING)
-        
         motion = Motion(piece, from_pos, to_pos, now)
         
-        if self.active_motion is None:
-            # אין תנועה פעילה - התחל מיד
-            self.active_motion = motion
-            self.move_history.append((from_pos, to_pos, "started"))
-        else:
-            # יש תנועה פעילה - הוסף לתור
-            self.queued_moves.append((piece, from_pos, to_pos))
-            self.move_history.append((from_pos, to_pos, "queued"))
+        # שלב 7: קבע את ה-piece כ-moving
+        piece.set_state(PieceState.MOVING)
         
-        return MoveResult(True, "move_accepted")
+        # שלב 8: הוסף לarbiter
+        self.arbiter.add_motion(motion)
+        self.move_history.append((from_pos, to_pos, "motion_added"))
+        
+        return MoveResult(True, "ok")
     
     def wait(self, ms):
         """
         צפה ms מילישניות
-        זה משדרג את ה-clock ובדוק אם motions הסתיימו
+        זה קדם את השעון ובדוק אילו motions הסתיימו
         """
         self.arbiter.advance(ms)
         self._resolve_motions()
     
     def _resolve_motions(self):
         """
-        זה ה-_resolve שצריך להיות כאן!!!
-        בדוק אילו motions הסתיימו בזמן הנוכחי
+        זה הלב של engine - בדוק אילו motions הסתיימו
+        וביצע את updates בboard
+        
+        משלב:
+        1. מצא את כל ה-motions שסיימו
+        2. עדכן את board
+        3. בדוק הכתרה
+        4. בדוק אם מלך נתפס (game_over)
         """
         now = self.arbiter.now()
         
-        # ייתכן שמספר motions יסתיימו - while loop זה חיוני
-        while self.active_motion and self.active_motion.is_complete(now):
-            motion = self.active_motion
-            
-            # בדוק מה נתפסה לפני הפעולה
-            captured_piece = self.board.get_piece_at(motion.end_pos)
+        # מצא את כל ה-motions שסיימו
+        completed_motions = []
+        for motion in self.arbiter.get_active_motions():
+            if motion.is_complete(now):
+                completed_motions.append(motion)
+        
+        # עדכן את board עבור כל motion שהסתיים
+        for motion in completed_motions:
+            # בדוק מה נתפסה לפני שמוזיזים
+            captured_piece = self.state.board.get_piece_at(motion.end_pos)
             
             # בצע את התנועה בboard
-            self.board.remove_piece(motion.start_pos)
+            self.state.board.remove_piece(motion.start_pos)
             motion.piece.move_to(motion.end_pos)
-            self.board.place_piece(motion.piece, motion.end_pos)
+            self.state.board.place_piece(motion.piece, motion.end_pos)
             motion.piece.set_state(PieceState.IDLE)
             
             self.move_history.append((motion.start_pos, motion.end_pos, "completed"))
             
-            self.active_motion = None
+            # הסר motion מ-arbiter
+            self.arbiter.remove_motion(motion)
             
-            # בדוק הכתרה
+            # בדוק הכתרה (pawn promotion)
             if motion.piece.kind == "P":
-                promotion_row = 0 if motion.piece.color == "white" else self.board.rows - 1
+                promotion_row = 0 if motion.piece.color == "white" else self.state.board.rows - 1
                 if motion.end_pos.row == promotion_row:
                     motion.piece.kind = "Q"
                     self.move_history.append(("promotion", motion.end_pos, "queen"))
             
             # בדוק אם מלך נתפס
             if captured_piece is not None and captured_piece.kind == "K":
-                self.game_over = True
-                self.queued_moves = []  # מבטלים את התור
+                self.state.game_over = True
                 self.move_history.append(("game_over", captured_piece, "king_captured"))
-                return  # ← עצור כל דבר
-            
-            # אם יש תור ברידע - ספוק את התנועה הבאה
-            if not self.game_over and self.queued_moves:
-                piece, start_pos, destination = self.queued_moves.pop(0)
-                new_motion = Motion(piece, start_pos, destination, now)
-                piece.set_state(PieceState.MOVING)
-                self.active_motion = new_motion
     
     def snapshot(self):
         """
-        חזיר תמונת מזל של כל ה-state
-        כדי שנוכל להשחזר או לשמור
+        צור תמונת מזל של כל ה-state
+        לצורך saving/loading משחקים
         """
         pieces_state = {}
-        for (col, row), piece in self.board.pieces.items():
+        for (col, row), piece in self.state.board.pieces.items():
             pieces_state[(col, row)] = {
                 'id': piece.id,
                 'kind': piece.kind,
@@ -139,16 +165,20 @@ class GameEngine:
                 'state': piece.state
             }
         
+        active_motions_snapshot = []
+        for motion in self.arbiter.get_active_motions():
+            active_motions_snapshot.append({
+                'from': (motion.start_pos.col, motion.start_pos.row),
+                'to': (motion.end_pos.col, motion.end_pos.row),
+                'started_at': motion.start_time,
+                'duration': motion.duration_ms,
+                'piece_id': motion.piece.id
+            })
+        
         return {
             'timestamp': self.arbiter.now(),
             'board_pieces': pieces_state,
-            'game_over': self.game_over,
-            'active_motion': {
-                'from': (self.active_motion.start_pos.col, self.active_motion.start_pos.row),
-                'to': (self.active_motion.end_pos.col, self.active_motion.end_pos.row),
-                'started_at': self.active_motion.start_time,
-                'duration': self.active_motion.duration_ms
-            } if self.active_motion else None,
-            'queued_count': len(self.queued_moves),
+            'game_over': self.state.game_over,
+            'active_motions': active_motions_snapshot,
             'move_history': self.move_history
         }

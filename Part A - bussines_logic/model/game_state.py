@@ -2,8 +2,8 @@
 class GameState:
     """
     מצב המשחק - data only, לא logic
-    Malki's approach: struct עם board + is_game_over
+    אחראי רק לשמירת data
     """
     def __init__(self, board):
         self.board = board
-        self.is_game_over = False
+        self.game_over = False

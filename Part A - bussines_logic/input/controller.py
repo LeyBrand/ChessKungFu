@@ -1,16 +1,23 @@
+# Part A - bussines_logic/input/controller.py
 from constants import EMPTY_CELL
 from input.board_mapper import pixel_to_cell
 from model.position import Position
 from model.piece import PieceState
 from engine.game_engine import GameEngine
 
+
 class Controller:
     """
     קונטרולר - מקבל input וקוראה לengine
     לא מחזיק state! ה-engine עושה את זה
+    
+    Malki's Architecture:
+    - Controller זה רק כלי לקבלת input
+    - כל הlogic הולך לengine
     """
+    
     def __init__(self, engine: GameEngine):
-        self.engine = engine  # ← משתמש בengine שהעבירו לו
+        self.engine = engine
         self.current_selection = None
     
     def handle(self, command, board):
@@ -54,14 +61,12 @@ class Controller:
             else:
                 # עבור לengine לבדיקה
                 result = self.engine.request_move(self.current_selection, position)
-                # לא להדפיס כאן - זה מפריע לtests
                 self.current_selection = None
     
     def _handle_wait(self, args, board):
         """צפה כמה מילישניות"""
         ms = int(args[0])
-        self.engine.wait(ms)  # ← engine עושה את כל העבודה
-        # לא להדפיס כאן - זה מפריע לtests
+        self.engine.wait(ms)
     
     def _handle_print(self, args, board):
         """הדפס את הboard"""
@@ -71,7 +76,6 @@ class Controller:
     def _handle_snapshot(self, args, board):
         """שמור snapshot"""
         snapshot = self.engine.snapshot()
-        # יכול להדפיס debug info אם צריך
         return snapshot
     
     def _handle_jump(self, args, board):

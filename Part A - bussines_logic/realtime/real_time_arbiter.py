@@ -1,27 +1,38 @@
+# Part A - bussines_logic/realtime/real_time_arbiter.py
 import time
 
-
 class RealTimeArbiter:
-    _instance = None
-
-    def __init__(self):
-        # נעילת רגע אמיתי אחד כבסיס - זהו "אפס" המערכת, מעוגן לזמן אמת
-        self._base_wall_time_ms = time.time() * 1000
-        self._elapsed_virtual_ms = 0
-
-    @classmethod
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = RealTimeArbiter()
-        return cls._instance
-
+    """
+    מנהל הזמן של המשחק
+    לא singleton - כל GameEngine יוצר את שלו
+    """
+    def __init__(self, board):
+        self.board = board
+        self.game_clock_ms = 0
+        self.active_motions = []
+    
     def now(self):
-        # הזמן "הרשמי" הנוכחי - זמן אמת בסיסי + כל מה שקודם דרך wait
-        return self._base_wall_time_ms + self._elapsed_virtual_ms
-
+        """החזר את הזמן הנוכחי של המשחק"""
+        return self.game_clock_ms
+    
     def advance(self, ms):
-        self._elapsed_virtual_ms += ms
-
+        """קדם את השעון ב-ms מילישניות"""
+        self.game_clock_ms += ms
+    
+    def add_motion(self, motion):
+        """הוסף motion לרשימה"""
+        self.active_motions.append(motion)
+    
+    def get_active_motions(self):
+        """חזר את כל ה-motions הפעילים"""
+        return self.active_motions
+    
+    def remove_motion(self, motion):
+        """הסר motion מרשימה"""
+        if motion in self.active_motions:
+            self.active_motions.remove(motion)
+    
     def reset(self):
-        self._base_wall_time_ms = time.time() * 1000
-        self._elapsed_virtual_ms = 0
+        """אתחל את הarbiter"""
+        self.game_clock_ms = 0
+        self.active_motions = []
