@@ -1,5 +1,8 @@
 from rules.rook_rule import get_rook_moves
 from rules.king_rule import get_king_moves
+from rules.knight_rule import get_knight_moves
+from rules.bishop_rule import get_bishop_moves
+from rules.queen_rule import get_queen_moves
 
 class Board:
     def __init__(self, rows, cols):
@@ -32,4 +35,10 @@ class Board:
             return get_rook_moves(self, piece)
         if piece.kind == "K":
             return get_king_moves(self, piece)
+        if piece.kind == "N":
+            return get_knight_moves(self, piece)
+        if piece.kind == "B":
+            return get_bishop_moves(self, piece)
+        if piece.kind == "Q":
+            return get_queen_moves(self, piece)
         return [] # כאן נוסיף בהמשך חוקים לשאר
