@@ -12,6 +12,8 @@ class Controller:
         self.active_motion = None
         # תנועות שממתינות שהמסלול יתפנה, לפי סדר הגעה
         self.queued_moves = []
+        # ברגע שמלך נאכל, המשחק נגמר וכל קלט נוסף מתעלם
+        self.game_over = False
 
     def handle(self, command, board):
         self._resolve_motions(board)
@@ -33,14 +35,22 @@ class Controller:
         # ייתכן שכמה תנועות תורניות יסתיימו באותה קריאה (למשל אחרי wait ארוך)
         while self.active_motion and self.active_motion.is_complete(now):
             motion = self.active_motion
+
+            # מזהים אכילה של מלך *לפני* שדורסים את המשבצת
+            captured_piece = board.get_piece_at(motion.end_pos)
+
             board.remove_piece(motion.start_pos)
             motion.piece.move_to(motion.end_pos)
             board.place_piece(motion.piece, motion.end_pos)
             motion.piece.set_state(PieceState.IDLE)
             self.active_motion = None
 
-            # המסלול התפנה - אם יש תנועה בתור, היא מתחילה מיד, בלי המתנה נוספת
-            if self.queued_moves:
+            if captured_piece is not None and captured_piece.kind == "K":
+                self.game_over = True
+                self.queued_moves = []  # מבטלים כל תנועה ממתינה - המשחק נגמר
+
+            # המסלול התפנה - אם יש תנועה בתור והמשחק עדיין פעיל, היא מתחילה מיד
+            if not self.game_over and self.queued_moves:
                 piece, start_pos, destination = self.queued_moves.pop(0)
                 new_motion = Motion(piece, start_pos, destination, now)
                 piece.set_state(PieceState.MOVING)
@@ -61,6 +71,9 @@ class Controller:
         print_board(board)
 
     def click(self, position, board):
+        if self.game_over:
+            return
+
         if not board.in_bounds(position):
             self.selected_pos = None
             return
