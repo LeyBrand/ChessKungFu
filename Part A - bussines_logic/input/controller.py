@@ -45,6 +45,12 @@ class Controller:
             motion.piece.set_state(PieceState.IDLE)
             self.active_motion = None
 
+            # הכתרה - רגלי שמגיע לשורה האחרונה של היריב הופך למלכה
+            if motion.piece.kind == "P":
+                promotion_row = 0 if motion.piece.color == "white" else board.rows - 1
+                if motion.end_pos.row == promotion_row:
+                    motion.piece.kind = "Q"
+
             if captured_piece is not None and captured_piece.kind == "K":
                 self.game_over = True
                 self.queued_moves = []  # מבטלים כל תנועה ממתינה - המשחק נגמר

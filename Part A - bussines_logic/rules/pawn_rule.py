@@ -8,14 +8,28 @@ def get_pawn_moves(board, piece):
     # לבן זז כלפי מעלה (row פוחת), שחור זז כלפי מטה (row גדל)
     direction = -1 if piece.color == "white" else 1
 
-    # 1. צעד קדימה - רק אם המשבצת ריקה (אין אכילה בצעד ישר)
-    forward_pos = Position(curr_col, curr_row + direction)
-    if board.in_bounds(forward_pos):
-        target = board.get_piece_at(forward_pos)
-        if target is None:
-            moves.append(forward_pos)
+    # שורת המוצא של הרגלי - קובעת אם מותר צעד כפול
+    start_row = board.rows - 1 if piece.color == "white" else 0
 
-    # 2. אכילה באלכסון - רק אם יש שם כלי של היריב
+    # 1. צעד קדימה יחיד - רק אם המשבצת ריקה (אין אכילה בצעד ישר)
+    single_step_pos = Position(curr_col, curr_row + direction)
+    single_step_clear = False
+
+    if board.in_bounds(single_step_pos):
+        target = board.get_piece_at(single_step_pos)
+        if target is None:
+            moves.append(single_step_pos)
+            single_step_clear = True
+
+    # 2. צעד כפול - רק מהשורה ההתחלתית, ורק אם שתי המשבצות בדרך פנויות
+    if curr_row == start_row and single_step_clear:
+        double_step_pos = Position(curr_col, curr_row + 2 * direction)
+        if board.in_bounds(double_step_pos):
+            target = board.get_piece_at(double_step_pos)
+            if target is None:
+                moves.append(double_step_pos)
+
+    # 3. אכילה באלכסון - רק אם יש שם כלי של היריב
     diagonal_offsets = [(-1, direction), (1, direction)]
     for dc, dr in diagonal_offsets:
         diag_pos = Position(curr_col + dc, curr_row + dr)
