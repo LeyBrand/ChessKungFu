@@ -73,6 +73,10 @@ class Controller:
         snapshot = self.engine.snapshot()
         return snapshot
     
+    # input/controller.py
     def _handle_jump(self, args, board):
-        """עדיין לא מובנה"""
-        pass
+        """קפוץ ישירות"""
+        x, y = int(args[0]), int(args[1])
+        col, row = pixel_to_cell(x, y)
+        pos = Position(col, row)
+        result = self.engine.jump(pos)

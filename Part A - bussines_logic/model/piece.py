@@ -3,13 +3,16 @@ class PieceState:
     MOVING = "moving"
     CAPTURED = "captured"
 
+# model/piece.py
 class Piece:
     def __init__(self, id, color, kind, position):
         self.id = id
         self.color = color
         self.kind = kind
         self.position = position
-        self.state = PieceState.IDLE  # מתחיל במצב idle
+        self.state = PieceState.IDLE
+        self.start_position = position if kind == "P" else None  # ← שמור start pos
+    
     def move_to(self, new_position):
         self.position = new_position
 

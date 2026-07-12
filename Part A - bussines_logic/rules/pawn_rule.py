@@ -8,8 +8,8 @@ def get_pawn_moves(board, piece):
     # לבן זז כלפי מעלה (row פוחת), שחור זז כלפי מטה (row גדל)
     direction = -1 if piece.color == "white" else 1
 
-    # שורת המוצא של הרגלי - קובעת אם מותר צעד כפול
-    start_row = board.rows - 1 if piece.color == "white" else 0
+    # שורת המוצא של הרגלי - שורה אחת לפני שורת הבסיס של הצבע (כמו בשחמט אמיתי)
+    start_row = board.rows - 2 if piece.color == "white" else 1
 
     # 1. צעד קדימה יחיד - רק אם המשבצת ריקה (אין אכילה בצעד ישר)
     single_step_pos = Position(curr_col, curr_row + direction)
