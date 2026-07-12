@@ -8,7 +8,10 @@ from realtime.motion import Motion
 class Controller:
     def __init__(self):
         self.selected_pos = None
-        self.pending_motions = []
+        # רק תנועה אחת גלובלית פעילה בכל רגע - זה "המסלול המשותף"
+        self.active_motion = None
+        # תנועות שממתינות שהמסלול יתפנה, לפי סדר הגעה
+        self.queued_moves = []
 
     def handle(self, command, board):
         self._resolve_motions(board)
@@ -26,18 +29,22 @@ class Controller:
     def _resolve_motions(self, board):
         arbiter = RealTimeArbiter.instance()
         now = arbiter.now()
-        still_pending = []
 
-        for motion in self.pending_motions:
-            if motion.is_complete(now):
-                board.remove_piece(motion.start_pos)
-                motion.piece.move_to(motion.end_pos)
-                board.place_piece(motion.piece, motion.end_pos)
-                motion.piece.set_state(PieceState.IDLE)
-            else:
-                still_pending.append(motion)
+        # ייתכן שכמה תנועות תורניות יסתיימו באותה קריאה (למשל אחרי wait ארוך)
+        while self.active_motion and self.active_motion.is_complete(now):
+            motion = self.active_motion
+            board.remove_piece(motion.start_pos)
+            motion.piece.move_to(motion.end_pos)
+            board.place_piece(motion.piece, motion.end_pos)
+            motion.piece.set_state(PieceState.IDLE)
+            self.active_motion = None
 
-        self.pending_motions = still_pending
+            # המסלול התפנה - אם יש תנועה בתור, היא מתחילה מיד, בלי המתנה נוספת
+            if self.queued_moves:
+                piece, start_pos, destination = self.queued_moves.pop(0)
+                new_motion = Motion(piece, start_pos, destination, now)
+                piece.set_state(PieceState.MOVING)
+                self.active_motion = new_motion
 
     def _handle_wait(self, args, board):
         ms = int(args[0])
@@ -79,11 +86,16 @@ class Controller:
                 result = validate_move(board, selected_piece, position)
 
                 if result == "ok":
-                    # לא מזיזים מיידית - יוצרים תנועה שתושלם רק כשעובר מספיק זמן
                     now = RealTimeArbiter.instance().now()
-                    motion = Motion(selected_piece, self.selected_pos, position, now)
                     selected_piece.set_state(PieceState.MOVING)
-                    self.pending_motions.append(motion)
+
+                    if self.active_motion is None:
+                        # המסלול פנוי - מתחילים לזוז מיד
+                        motion = Motion(selected_piece, self.selected_pos, position, now)
+                        self.active_motion = motion
+                    else:
+                        # המסלול תפוס - נכנסים לתור, נתחיל רק כשיתפנה
+                        self.queued_moves.append((selected_piece, self.selected_pos, position))
 
                 # בסיום ניסיון תנועה, תמיד מנקים את הבחירה
                 self.selected_pos = None
