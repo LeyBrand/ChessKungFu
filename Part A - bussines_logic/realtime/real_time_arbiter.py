@@ -6,28 +6,38 @@ from model.piece import PieceState
 
 
 class RealTimeArbiter:
+    """
+    מנהל הזמן של המשחק
+    אחראי על motions + motion resolution (כמו Malki)
+    """
+
     def __init__(self, board):
         self.board = board
         self.game_clock_ms = 0
         self.active_motions = []
 
     def now(self):
+        """החזר את הזמן הנוכחי של המשחק"""
         return self.game_clock_ms
 
     def advance(self, ms):
+        """קדם את השעון ב-ms מילישניות"""
         self.game_clock_ms += ms
 
     def add_motion(self, motion):
+        """הוסף motion לרשימה"""
         self.active_motions.append(motion)
 
     def get_active_motions(self):
+        """חזר את כל ה-motions הפעילים"""
         return self.active_motions
 
     def remove_motion(self, motion):
+        """הסר motion מרשימה"""
         if motion in self.active_motions:
             self.active_motions.remove(motion)
 
-    def tick(self, ms):
+    def advance_time(self, ms):
         self.game_clock_ms += ms
         king_captured = False
 
@@ -36,6 +46,7 @@ class RealTimeArbiter:
             if motion.is_complete(self.game_clock_ms):
                 completed_motions.append(motion)
 
+        # ← בדוק התנגשויות! (יעד משותף, או שני כלים שמחליפים מקומות ביניהם)
         for i, motion1 in enumerate(completed_motions):
             for motion2 in completed_motions[i+1:]:
                 same_destination = motion1.end_pos == motion2.end_pos
@@ -45,6 +56,7 @@ class RealTimeArbiter:
                 )
 
                 if same_destination or swapped_path:
+                    # בזמן שווה - מי שהתבקש קודם (מוקדם יותר ברשימה) מנצח
                     if motion1.start_time <= motion2.start_time:
                         motion2.piece.set_state(PieceState.CAPTURED)
                     else:
@@ -54,9 +66,7 @@ class RealTimeArbiter:
             captured_piece = self.board.get_piece_at(motion.end_pos)
 
             if motion.piece.state != PieceState.CAPTURED:
-                self.board.remove_piece(motion.start_pos)
-                motion.piece.move_to(motion.end_pos)
-                self.board.place_piece(motion.piece, motion.end_pos)
+                self.board.move_piece(motion.start_pos, motion.end_pos)
                 motion.piece.set_state(PieceState.IDLE)
 
             self.active_motions.remove(motion)
@@ -72,5 +82,10 @@ class RealTimeArbiter:
         return king_captured
 
     def reset(self):
+        """אתחל את הarbiter"""
         self.game_clock_ms = 0
         self.active_motions = []
+
+    def tick(self, ms):
+        """שם ישן ל-advance_time - נשמר לתאימות לאחור."""
+        return self.advance_time(ms)

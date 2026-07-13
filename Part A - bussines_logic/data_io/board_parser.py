@@ -26,6 +26,6 @@ def parse_board(board_text):
                 color = "white" if token.startswith(WHITE) else "black"
                 kind = token[1:]
                 piece = Piece(id=f"{token}_{c}_{r}", color=color, kind=kind, position=Position(c, r))
-                board.place_piece(piece, Position(c, r))
+                board.add_piece(piece, Position(c, r))
                 
     return board

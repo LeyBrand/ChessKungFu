@@ -1,66 +1,87 @@
-# Part A - bussines_logic/input/controller.py
-from constants import EMPTY_CELL
 from input.board_mapper import pixel_to_cell
 from model.position import Position
-from engine.game_engine import GameEngine
 
 
 class Controller:
-    def __init__(self, engine: GameEngine):
+    """
+    הבקר מתרגם פעולות משתמש (קליקים) לפקודות משחק.
+    הוא אינו מחליט על חוקיות שחמט - זו אחריות של RuleEngine, דרך GameEngine.
+
+    הבקר אסור לו:
+    - לקרוא ישירות ל-Board.move_piece
+    - לקרוא ישירות ל-RuleEngine
+    """
+
+    def __init__(self, engine):
         self.engine = engine
-        self.current_selection = None
-    
+        self.selected_pos = None
+
     def handle(self, command, board):
-        """ממשק קלט ראשי"""
         name = command["name"]
         args = command.get("args", [])
-        
+
         actions = {
             "click": self._handle_click,
             "print": self._handle_print,
             "wait": self._handle_wait,
             "jump": self._handle_jump,
-            "snapshot": self._handle_snapshot
         }
-        
+
         if name in actions:
             actions[name](args, board)
 
     def _handle_click(self, args, board):
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)
-        position = Position(col, row)
-        
-        if not board.in_bounds(position):
-            self.engine.current_selection = None
+        self.click(Position(col, row), board)
+
+    def click(self, position, board):
+        in_bounds = board.in_bounds(position)
+
+        if self.selected_pos is None:
+            # אין בחירה - קליקים מחוץ ללוח מתעלמים
+            if not in_bounds:
+                return
+
+            # קליק ראשון על תא ריק - מתעלמים
+            piece = board.get_piece_at(position)
+            if piece is None:
+                return
+
+            self.selected_pos = position
             return
-        
-        piece = board.get_piece_at(position)
-        
-        if self.engine.current_selection is None:
-            if piece is not None:
-                self.engine.current_selection = position
-        else:
-            selected_piece = board.get_piece_at(self.engine.current_selection)
-            if piece and selected_piece and piece.color == selected_piece.color:
-                self.engine.current_selection = position
-            else:
-                result = self.engine.request_move(self.engine.current_selection, position)
-                self.engine.current_selection = None
-    def _handle_wait(self, args, board):
-        ms = int(args[0])
-        self.engine.wait(ms)
-    
-    def _handle_print(self, args, board):
-        from data_io.board_printer import print_board
-        print_board(board)
-    
-    def _handle_snapshot(self, args, board):
-        snapshot = self.engine.snapshot()
-        return snapshot
-    
+
+        # יש בחירה קיימת:
+        if not in_bounds:
+            # קליק מחוץ ללוח מבטל את הבחירה, בלי לשלוח פקודה ל-GameEngine
+            self.selected_pos = None
+            return
+
+        # קליק שני על כלי ידידותי (אותו צבע) - מחליף את הבחירה, לא שולח request_move
+        # (זו בדיקת בעלות פשוטה על מידע גולמי מה-Board, לא החלטת חוקיות-שחמט)
+        selected_piece = board.get_piece_at(self.selected_pos)
+        clicked_piece = board.get_piece_at(position)
+        if clicked_piece is not None and selected_piece is not None and clicked_piece.color == selected_piece.color:
+            self.selected_pos = position
+            return
+
+        # קליק שני בתוך הלוח - שולחים בקשת מהלך ל-GameEngine
+        source = self.selected_pos
+        destination = position
+        self.engine.request_move(source, destination)
+
+        # מנקים את הבחירה תמיד, בין אם המהלך חוקי ובין אם לא
+        self.selected_pos = None
+
     def _handle_jump(self, args, board):
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)
-        pos = Position(col, row)
-        result = self.engine.jump(pos)
+        self.engine.jump(Position(col, row))
+
+    def _handle_wait(self, args, board):
+        ms = int(args[0])
+        self.engine.wait(ms)
+
+    def _handle_print(self, args, board):
+        from data_io.board_printer import print_board
+        print_board(board)

@@ -1,14 +1,12 @@
-from rules.rook_rule import get_rook_moves
-from rules.king_rule import get_king_moves
-from rules.knight_rule import get_knight_moves
-from rules.bishop_rule import get_bishop_moves
-from rules.queen_rule import get_queen_moves
-from rules.pawn_rule import get_pawn_moves
-
 class Board:
+    """
+    Board הוא הבעלים של הסידור הלוגי של הכלים בלבד.
+    אין לו שום ידע על חוקי תנועה של שחמט - זו אחריות של RuleEngine.
+    """
+
     def __init__(self, rows, cols):
-        self.cols = cols
         self.rows = rows
+        self.cols = cols
         self.pieces = {}
 
     def in_bounds(self, position):
@@ -17,31 +15,41 @@ class Board:
     def get_piece_at(self, position):
         return self.pieces.get((position.col, position.row))
 
-    def is_friendly_destination(self, piece, destination):
-        target = self.get_piece_at(destination)
-        if target is None:
-            return False
-        return target.color == piece.color
+    def add_piece(self, piece, position):
+        """
+        הוספת כלי חדש ללוח (משמש בזמן בניית הלוח הראשוני מהפרסינג).
+        דוחה תפוסה כפולה - נכשל אם התא כבר תפוס.
+        """
+        key = (position.col, position.row)
+        if key in self.pieces:
+            raise ValueError(f"Cell {key} is already occupied")
 
-    def place_piece(self, piece, position):
-        self.pieces[(position.col, position.row)] = piece
+        self.pieces[key] = piece
         piece.position = position
 
     def remove_piece(self, position):
         key = (position.col, position.row)
         if key in self.pieces:
             del self.pieces[key]
-    def legal_destinations(self, piece):
-        if piece.kind == "R":
-            return get_rook_moves(self, piece)
-        if piece.kind == "K":
-            return get_king_moves(self, piece)
-        if piece.kind == "N":
-            return get_knight_moves(self, piece)
-        if piece.kind == "B":
-            return get_bishop_moves(self, piece)
-        if piece.kind == "Q":
-            return get_queen_moves(self, piece)
-        if piece.kind == "P":
-            return get_pawn_moves(self, piece)
-        return [] 
+
+    def place_piece(self, piece, position):
+        """
+        הצבה גולמית של כלי במשבצת - דורסת כל מה שהיה שם (כולל אכילה).
+        משמשת בעיקר כחלק פנימי של move_piece, וגם ע"י מנגנונים מיוחדים
+        (כמו נחיתה אחרי קפיצה) שאינם "מהלך רגיל" עם מקור ויעד.
+        """
+        self.pieces[(position.col, position.row)] = piece
+        piece.position = position
+
+    def move_piece(self, from_pos, to_pos):
+        """
+        הזזת כלי לאחר שהמהלך כבר אומת במקום אחר (RuleEngine).
+        Board לא בודק חוקיות - הוא רק מבצע את ההזזה בפועל,
+        כולל דריסה/אכילה של מה שהיה ביעד אם צריך.
+        """
+        piece = self.get_piece_at(from_pos)
+        if piece is None:
+            return
+
+        self.remove_piece(from_pos)
+        self.place_piece(piece, to_pos)
