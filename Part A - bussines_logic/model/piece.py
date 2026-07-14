@@ -1,6 +1,7 @@
 class PieceState:
     IDLE = "idle"
     MOVING = "moving"
+    JUMPING = "jumping"
     CAPTURED = "captured"
 
 class Piece:

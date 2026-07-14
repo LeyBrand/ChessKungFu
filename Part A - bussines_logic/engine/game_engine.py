@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from constants import MOVE_MS
 from realtime.real_time_arbiter import RealTimeArbiter
 from realtime.motion import Motion
+from model.piece import PieceState
 
 
 class MoveResult:
@@ -72,6 +73,7 @@ class GameEngine:
             return MoveResult(False, "motion_in_progress")
 
         now = self.arbiter.now()
+        piece.set_state(PieceState.JUMPING)
         self.state.board.remove_piece(pos)
         self.airborne.append({
             "piece": piece,
@@ -131,6 +133,19 @@ class GameEngine:
             else:
                 pixel = (col * CELL_SIZE, row * CELL_SIZE)
 
+            pieces_snapshot.append({
+                'id': piece.id,
+                'kind': piece.kind,
+                'color': piece.color,
+                'state': piece.state,
+                'cell': (col, row),
+                'pixel': pixel,
+            })
+
+        for entry in self.airborne:
+            piece = entry["piece"]
+            col, row = entry["origin"].col, entry["origin"].row
+            pixel = (col * CELL_SIZE, row * CELL_SIZE)
             pieces_snapshot.append({
                 'id': piece.id,
                 'kind': piece.kind,
