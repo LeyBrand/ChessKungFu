@@ -10,7 +10,7 @@ class Piece:
         self.kind = kind
         self.position = position
         self.state = PieceState.IDLE
-        self.start_position = position if kind == "P" else None  # ← שמור start pos
+        self.start_position = position if kind == "P" else None
     
     def move_to(self, new_position):
         self.position = new_position

@@ -6,7 +6,12 @@ from rules.queen_rule import QueenRules
 from rules.pawn_rule import PawnRules
 
 
-# מפה משותפת - RuleEngine, לא Board, הוא הבעלים של הידע הזה
+class MoveValidation:
+    def __init__(self, is_valid, reason):
+        self.is_valid = is_valid
+        self.reason = reason
+
+
 _RULES = {
     "R": RookRules(),
     "K": KingRules(),
@@ -24,12 +29,13 @@ def get_legal_destinations(board, piece):
     return rules.legal_destinations(board, piece)
 
 
-def validate_move(board, piece, destination):
+def validate_move(board, source, destination):
     if not board.in_bounds(destination):
-        return "outside_board"
+        return MoveValidation(False, "outside_board")
 
-    if not piece.is_available():
-        return "empty_source"
+    piece = board.get_piece_at(source)
+    if piece is None:
+        return MoveValidation(False, "empty_source")
 
     legal_moves = get_legal_destinations(board, piece)
     is_legal = False
@@ -39,10 +45,10 @@ def validate_move(board, piece, destination):
             break
 
     if not is_legal:
-        return "illegal_piece_move"
+        return MoveValidation(False, "illegal_piece_move")
 
     target = board.get_piece_at(destination)
     if target is not None and target.color == piece.color:
-        return "friendly_destination"
+        return MoveValidation(False, "friendly_destination")
 
-    return "ok"
+    return MoveValidation(True, "ok")

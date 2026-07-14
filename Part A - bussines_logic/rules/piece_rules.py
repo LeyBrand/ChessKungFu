@@ -23,7 +23,7 @@ class PieceRules(ABC):
                 else:
                     if target.color != piece.color:
                         moves.append(new_pos)
-                    break  # כלי (של יריב או שלנו) חוסם את ההמשך
+                    break 
 
                 new_col += dc
                 new_row += dr

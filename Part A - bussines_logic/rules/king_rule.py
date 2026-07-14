@@ -3,8 +3,8 @@ from rules.piece_rules import PieceRules
 
 class KingRules(PieceRules):
     OFFSETS = [
-        (0, 1), (0, -1), (1, 0), (-1, 0),   # ישרים
-        (1, 1), (1, -1), (-1, 1), (-1, -1)  # אלכסונים
+        (0, 1), (0, -1), (1, 0), (-1, 0),   
+        (1, 1), (1, -1), (-1, 1), (-1, -1)  
     ]
 
     def legal_destinations(self, board, piece):

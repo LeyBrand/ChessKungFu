@@ -3,7 +3,7 @@ from rules.piece_rules import PieceRules
 
 class RookRules(PieceRules):
     DIRECTIONS = [
-        (0, 1), (0, -1), (1, 0), (-1, 0)  # ישרים
+        (0, 1), (0, -1), (1, 0), (-1, 0)  
     ]
 
     def legal_destinations(self, board, piece):

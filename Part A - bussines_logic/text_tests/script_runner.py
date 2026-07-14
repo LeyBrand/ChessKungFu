@@ -1,16 +1,8 @@
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from input.controller import Controller
-from engine.game_engine import GameEngine
-from model.game_state import GameState
+from app import build_app
 
 
 def run(board, commands):
-    state = GameState(board)
-    engine = GameEngine(state)
-    controller = Controller(engine)
-    
+    state, engine, controller = build_app(board)
+
     for command in commands:
         controller.handle(command, board)

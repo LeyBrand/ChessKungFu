@@ -8,77 +8,47 @@ from realtime.motion import Motion
 
 
 class MoveResult:
-    """תוצאה של ניסיון move - חוצה את הגבול הציבורי של GameEngine."""
     def __init__(self, is_accepted, reason):
         self.is_accepted = is_accepted
         self.reason = reason
 
 
 class GameEngine:
-    """
-    מתאם שירות-האפליקציה. זהו גבול הפקודות הציבורי בשימוש
-    Controller ו-TextTestRunner.
-
-    GameEngine אינו מכיל:
-    - לוגיקת תנועה ספציפית לכלי (זה RuleEngine / piece_rules)
-    - מיפוי פיקסלים (זה board_mapper)
-    - קוד רינדור (זה board_printer)
-    - פירוש טקסט (זה script_parser / command_parser)
-    - לוגיקת מריץ בדיקות
-    """
-
     def __init__(self, state):
         self.state = state
         self.arbiter = RealTimeArbiter(self.state.board)
-        self.current_selection = None
         self.move_history = []
-        # כלים ש"קפצו" וכרגע נעדרים זמנית מהלוח (עד שינחתו בחזרה)
         self.airborne = []
 
-    # ---- שאלות הגנה ברמת האפליקציה (לא ידע-שחמט) ----
 
     def _is_game_over(self):
         return self.state.game_over
 
     def _is_route_busy(self, piece):
-        """האם לכלי הזה כבר יש תנועה פעילה במסלול המשותף?"""
         return any(motion.piece is piece for motion in self.arbiter.get_active_motions())
 
     def _is_reserved_by_friend(self, position, color):
-        """האם המשבצת שמורה לכלי ידידותי שכרגע 'באוויר' (קפץ)?"""
         return any(
             entry["origin"] == position and entry["piece"].color == color
             for entry in self.airborne
         )
 
-    # ---- הפקודות הציבוריות ----
-
     def request_move(self, from_pos, to_pos):
-        """
-        הנקודה היחידה שמבקשים דרכה להזיז כלי.
-        סדר הבדיקות: הגנות ברמת האפליקציה (game_over, מסלול תפוס),
-        ורק אחרי שהן עוברות - מעבירים ל-RuleEngine לבדיקת חוקיות.
-        """
         if self._is_game_over():
             return MoveResult(False, "game_over")
 
         piece = self.state.board.get_piece_at(from_pos)
-        if piece is None:
-            return MoveResult(False, "empty_source")
+        if piece is not None:
+            if self._is_route_busy(piece):
+                return MoveResult(False, "motion_in_progress")
 
-        if self._is_route_busy(piece):
-            return MoveResult(False, "motion_in_progress")
-
-        if self._is_reserved_by_friend(to_pos, piece.color):
-            return MoveResult(False, "reserved_square")
+            if self._is_reserved_by_friend(to_pos, piece.color):
+                return MoveResult(False, "reserved_square")
 
         from rules.rule_engine import validate_move
-        validation = validate_move(self.state.board, piece, to_pos)
-        if validation != "ok":
-            # סיבות ברמת הכלל מועתקות ישירות מ-MoveValidation
-            return MoveResult(False, validation)
-
-        # המהלך אומת - מתחילים Motion דרך RealTimeArbiter
+        validation = validate_move(self.state.board, from_pos, to_pos)
+        if not validation.is_valid:
+            return MoveResult(False, validation.reason)
         now = self.arbiter.now()
         motion = Motion(piece, from_pos, to_pos, now)
         self.arbiter.add_motion(motion)
@@ -91,7 +61,6 @@ class GameEngine:
         return MoveResult(True, "ok")
 
     def jump(self, pos):
-        """קפיצה - אותן הגנות ברמת אפליקציה כמו request_move, בלי RuleEngine."""
         if self._is_game_over():
             return MoveResult(False, "game_over")
 
@@ -113,17 +82,12 @@ class GameEngine:
         return MoveResult(True, "ok")
 
     def wait(self, ms):
-        """מאצילה קידום זמן מדומה ל-RealTimeArbiter, ומקבלת התראת אכילת מלך אם קרתה."""
         if self.arbiter.advance_time(ms):
             self.state.game_over = True
 
         self._resolve_airborne()
 
     def _resolve_airborne(self):
-        """
-        פתרון נחיתות - אם אויב תפס משבצת של כלי 'באוויר', הוא נאכל בנחיתה.
-        זהו פתרון-הגעה מקביל לזה של RealTimeArbiter, וגם הוא יכול לגרום ל-game_over.
-        """
         now = self.arbiter.now()
         still_airborne = []
 
@@ -142,31 +106,49 @@ class GameEngine:
 
         self.airborne = still_airborne
 
-    def snapshot(self):
-        """GameSnapshot לקריאה-בלבד, לשימוש ה-renderer וה-BoardPrinter."""
-        pieces_state = {}
+    def snapshot(self, selected_pos=None):
+        from constants import CELL_SIZE
+        from view.game_snapshot import GameSnapshot
+
+        now = self.arbiter.now()
+        active_by_piece_id = {
+            motion.piece.id: motion for motion in self.arbiter.get_active_motions()
+        }
+
+        pieces_snapshot = []
         for (col, row), piece in self.state.board.pieces.items():
-            pieces_state[(col, row)] = {
+            motion = active_by_piece_id.get(piece.id)
+
+            if motion is not None and motion.duration_ms > 0:
+                progress = (now - motion.start_time) / motion.duration_ms
+                progress = min(1.0, max(0.0, progress))
+                start_x, start_y = motion.start_pos.col * CELL_SIZE, motion.start_pos.row * CELL_SIZE
+                end_x, end_y = motion.end_pos.col * CELL_SIZE, motion.end_pos.row * CELL_SIZE
+                pixel = (
+                    start_x + (end_x - start_x) * progress,
+                    start_y + (end_y - start_y) * progress,
+                )
+            else:
+                pixel = (col * CELL_SIZE, row * CELL_SIZE)
+
+            pieces_snapshot.append({
                 'id': piece.id,
                 'kind': piece.kind,
                 'color': piece.color,
-                'state': piece.state
-            }
-
-        active_motions_snapshot = []
-        for motion in self.arbiter.get_active_motions():
-            active_motions_snapshot.append({
-                'from': (motion.start_pos.col, motion.start_pos.row),
-                'to': (motion.end_pos.col, motion.end_pos.row),
-                'started_at': motion.start_time,
-                'duration': motion.duration_ms,
-                'piece_id': motion.piece.id
+                'state': piece.state,
+                'cell': (col, row),
+                'pixel': pixel,
             })
 
-        return {
-            'timestamp': self.arbiter.now(),
-            'board_pieces': pieces_state,
-            'game_over': self.state.game_over,
-            'active_motions': active_motions_snapshot,
-            'move_history': self.move_history
-        }
+        selected_cell = None
+        if selected_pos is not None:
+            selected_cell = (selected_pos.col, selected_pos.row)
+
+        return GameSnapshot(
+            board_width=self.state.board.cols,
+            board_height=self.state.board.rows,
+            pieces=pieces_snapshot,
+            selected_cell=selected_cell,
+            game_over=self.state.game_over,
+            timestamp=now,
+        )
