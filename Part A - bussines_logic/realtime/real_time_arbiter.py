@@ -60,7 +60,7 @@ class RealTimeArbiter:
             self.active_motions.remove(motion)
 
             if motion.piece.kind == "P":
-                promotion_row = 0 if motion.piece.color == "white" else self.board.rows - 1
+                promotion_row = 0 if motion.piece.color == "white" else self.board.rows_length - 1
                 if motion.end_pos.row == promotion_row:
                     motion.piece.kind = "Q"
 

@@ -2,9 +2,9 @@ from constants import EMPTY_CELL, WHITE, BLACK
 from model.position import Position
 
 def print_board(board):
-    for r in range(board.rows):
+    for r in range(board.rows_length):
         row_tokens = []
-        for c in range(board.cols):
+        for c in range(board.cols_length):
             piece = board.get_piece_at(Position(c, r))
             if piece is None:
                 row_tokens.append(EMPTY_CELL)

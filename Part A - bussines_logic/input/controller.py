@@ -53,10 +53,11 @@ class Controller:
 
         source = self.selected_pos
         destination = position
-        self.engine.request_move(source, destination)
+        result = self.engine.request_move(source, destination)
+        print(f"MOVE {source} -> {destination}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 
         self.selected_pos = None
-
+        
     def _handle_jump(self, args, board):
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)

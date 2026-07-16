@@ -1,11 +1,11 @@
 class Board:
-    def __init__(self, rows, cols):
-        self.rows = rows
-        self.cols = cols
+    def __init__(self, rows_length, cols_length):
+        self.rows_length = rows_length
+        self.cols_length = cols_length
         self.pieces = {}
 
     def in_bounds(self, position):
-        return 0 <= position.col < self.cols and 0 <= position.row < self.rows
+        return 0 <= position.col < self.cols_length and 0 <= position.row < self.rows_length
 
     def get_piece_at(self, position):
         return self.pieces.get((position.col, position.row))

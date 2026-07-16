@@ -8,12 +8,12 @@ def parse_board(board_text):
     if not lines:
         return None
         
-    expected_cols = len(lines[0])
-    rows = len(lines)
-    board = Board(rows, expected_cols)
+    expected_cols_length = len(lines[0])
+    rows_length = len(lines)
+    board = Board(rows_length, expected_cols_length)
     
     for r, line in enumerate(lines):
-        if len(line) != expected_cols:
+        if len(line) != expected_cols_length:
             print("ERROR ROW_WIDTH_MISMATCH")
             return None
             

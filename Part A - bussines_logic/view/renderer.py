@@ -1,60 +1,18 @@
-LIGHT_SQUARE = "#f0d9b5"
-DARK_SQUARE = "#b58863"
-SELECTED_OUTLINE = "#ff3333"
-GAME_OVER_TEXT_COLOR = "#ff0000"
+def build_board_snapshot(snapshot):
+    return {
+        "pieces": [
+            {
+                "kind": p["kind"],
+                "color": p["color"],
+                "position": p["cell"],           # (col, row) לוגי
+                "motion": _extract_motion(p),     # None או {"from": (col,row), "to": (col,row), "progress": 0..1}
+            } for p in snapshot.pieces
+        ],
+        "selected_cell": snapshot.selected_cell,
+        "is_game_over": snapshot.game_over,
+    }
 
-
-def build_draw_instructions(snapshot, cell_size):
-    instructions = []
-
-    for row in range(snapshot.board_height):
-        for col in range(snapshot.board_width):
-            color = LIGHT_SQUARE if (row + col) % 2 == 0 else DARK_SQUARE
-            instructions.append({
-                "type": "rect",
-                "x": col * cell_size,
-                "y": row * cell_size,
-                "width": cell_size,
-                "height": cell_size,
-                "color": color,
-            })
-
-    if snapshot.selected_cell is not None:
-        col, row = snapshot.selected_cell
-        instructions.append({
-            "type": "rect_outline",
-            "x": col * cell_size,
-            "y": row * cell_size,
-            "width": cell_size,
-            "height": cell_size,
-            "color": SELECTED_OUTLINE,
-            "line_width": 4,
-        })
-
-    for piece_view in snapshot.pieces:
-        x, y = piece_view["pixel"]
-        label = _piece_label(piece_view["color"], piece_view["kind"])
-        instructions.append({
-            "type": "text",
-            "label": label,
-            "x": x + cell_size / 2,
-            "y": y + cell_size / 2,
-            "color": "#000000" if piece_view["color"] == "white" else "#ffffff",
-        })
-
-    if snapshot.game_over:
-        instructions.append({
-            "type": "text",
-            "label": "GAME OVER",
-            "x": (snapshot.board_width * cell_size) / 2,
-            "y": (snapshot.board_height * cell_size) / 2,
-            "color": GAME_OVER_TEXT_COLOR,
-        })
-
-    return instructions
-
-
-def _piece_label(color, kind):
-    """תווית טקסטואלית פשוטה לכלי, למשל 'wK' או 'bQ'."""
-    color_char = "w" if color == "white" else "b"
-    return f"{color_char}{kind}"
+def _extract_motion(piece_view):
+    # רק אם GameEngine בעתיד יחשוף motion logical (start_cell/end_cell/progress)
+    # ולא pixel/start_pixel/end_pixel כמו היום
+    return piece_view.get("motion")

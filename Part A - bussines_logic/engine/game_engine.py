@@ -109,7 +109,6 @@ class GameEngine:
         self.airborne = still_airborne
 
     def snapshot(self, selected_pos=None):
-        from constants import CELL_SIZE
         from view.game_snapshot import GameSnapshot
 
         now = self.arbiter.now()
@@ -121,17 +120,15 @@ class GameEngine:
         for (col, row), piece in self.state.board.pieces.items():
             motion = active_by_piece_id.get(piece.id)
 
+            motion_info = None
             if motion is not None and motion.duration_ms > 0:
                 progress = (now - motion.start_time) / motion.duration_ms
                 progress = min(1.0, max(0.0, progress))
-                start_x, start_y = motion.start_pos.col * CELL_SIZE, motion.start_pos.row * CELL_SIZE
-                end_x, end_y = motion.end_pos.col * CELL_SIZE, motion.end_pos.row * CELL_SIZE
-                pixel = (
-                    start_x + (end_x - start_x) * progress,
-                    start_y + (end_y - start_y) * progress,
-                )
-            else:
-                pixel = (col * CELL_SIZE, row * CELL_SIZE)
+                motion_info = {
+                    "from": (motion.start_pos.col, motion.start_pos.row),
+                    "to": (motion.end_pos.col, motion.end_pos.row),
+                    "progress": progress,
+                }
 
             pieces_snapshot.append({
                 'id': piece.id,
@@ -139,20 +136,19 @@ class GameEngine:
                 'color': piece.color,
                 'state': piece.state,
                 'cell': (col, row),
-                'pixel': pixel,
+                'motion': motion_info,
             })
 
         for entry in self.airborne:
             piece = entry["piece"]
             col, row = entry["origin"].col, entry["origin"].row
-            pixel = (col * CELL_SIZE, row * CELL_SIZE)
             pieces_snapshot.append({
                 'id': piece.id,
                 'kind': piece.kind,
                 'color': piece.color,
                 'state': piece.state,
                 'cell': (col, row),
-                'pixel': pixel,
+                'motion': None,
             })
 
         selected_cell = None
@@ -160,8 +156,8 @@ class GameEngine:
             selected_cell = (selected_pos.col, selected_pos.row)
 
         return GameSnapshot(
-            board_width=self.state.board.cols,
-            board_height=self.state.board.rows,
+            board_width=self.state.board.cols_length,
+            board_height=self.state.board.rows_length,
             pieces=pieces_snapshot,
             selected_cell=selected_cell,
             game_over=self.state.game_over,
