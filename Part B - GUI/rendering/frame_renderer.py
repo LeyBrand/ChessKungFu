@@ -19,10 +19,12 @@ ROW_ALT_COLOR = (222, 218, 222)
 TEXT_COLOR = (40, 40, 40)
 
 HEADER_HEIGHT = 36
+SCORE_HEIGHT = 24          # <-- הוסף שורה זו
 COLUMN_HEADER_HEIGHT = 26
 ROW_HEIGHT = 24
 TIME_COL_WIDTH = 100
 MOVE_COL_WIDTH = 90
+SCORE_TEXT_COLOR = (0, 90, 0)   # <-- הוסף שורה זו
 
 _sprite_library = SpriteLibrary()
 _score_tracker = ScoreTracker()
@@ -37,15 +39,15 @@ def render_frame(base_img, board_snapshot, cell_size):
 
     if board_snapshot["is_game_over"]:
         board_frame.put_text("GAME OVER", cell_size * 2, cell_size * 4, 1.2, GAME_OVER_COLOR, 3)
-
     frame = board_frame.with_side_panels(SIDEBAR_WIDTH, SIDEBAR_WIDTH, PANEL_BG_COLOR)
 
+    scores = _score_tracker.update(board_snapshot["pieces"])
     white_moves, black_moves = _split_history_by_color(board_snapshot.get("move_history", []))
 
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
-                      title="Black", moves=black_moves)
+                      title="Black", score=scores["black"], moves=black_moves)
     _draw_side_panel(frame, x_start=SIDEBAR_WIDTH + board_frame.width, panel_width=SIDEBAR_WIDTH,
-                      title="White", moves=white_moves)
+                      title="White", score=scores["white"], moves=white_moves)
 
     return frame
 
@@ -112,7 +114,7 @@ def _format_move_san(move):
     return f"{kind}{'x' if captured else ''}{dest}"
 
 
-def _draw_side_panel(frame, x_start, panel_width, title, moves):
+def _draw_side_panel(frame, x_start, panel_width, title, score, moves):
     margin = 10
     box_x1 = x_start + margin
     box_x2 = x_start + panel_width - margin
@@ -128,8 +130,15 @@ def _draw_side_panel(frame, x_start, panel_width, title, moves):
     title_y = header_y1 + (HEADER_HEIGHT + title_h) // 2
     frame.put_text(title, title_x, title_y, 0.7, HEADER_TEXT_COLOR, 2)
 
+    # Score line
+    score_text = f"Score: {score}"
+    score_y1 = header_y2 + 6
+    score_w, score_h = frame.text_size(score_text, 0.55, 1)
+    score_x = box_x1 + max(0, (box_x2 - box_x1 - score_w) // 2)
+    frame.put_text(score_text, score_x, score_y1 + score_h, 0.55, SCORE_TEXT_COLOR, 1)
+
     # Column headers
-    table_y1 = header_y2 + 8
+    table_y1 = score_y1 + SCORE_HEIGHT
     table_x1 = box_x1
     table_width = min(TIME_COL_WIDTH + MOVE_COL_WIDTH, box_x2 - box_x1)
     time_col_x = table_x1 + 8
