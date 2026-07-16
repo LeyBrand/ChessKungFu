@@ -1,10 +1,3 @@
-"""
-Single source of truth for converting logical board coordinates (col, row)
-into pixel coordinates. This is a GUI-only concern - it deliberately does NOT
-depend on Part A's constants, since cell size is a rendering detail, not a
-business-logic one.
-"""
-
 DEFAULT_CELL_SIZE = 100
 
 

@@ -1,12 +1,3 @@
-"""
-GameSession is the ONLY object external code (GUI, CLI, tests, future clients)
-should touch. It wraps GameState / GameEngine / Controller and hides all other
-business-logic internals (rules, arbiter, motions, board parsing, ...).
-
-Any change to the internal implementation of Part A should never require a
-change on the GUI side, as long as this contract stays the same.
-"""
-
 from model.game_state import GameState
 from engine.game_engine import GameEngine
 from input.controller import Controller

@@ -1,9 +1,10 @@
 import os
 import json
-import cv2
 
-# sprite_library.py now lives one level deeper (rendering/), so we go up
-# one extra level to reach Part B - GUI/data/pieces_mine
+from data.img import Img
+
+# sprite_library.py lives in rendering/, so go up one level to reach
+# Part B - GUI/data/pieces_mine
 DEFAULT_SPRITES_ROOT = os.path.join(os.path.dirname(__file__), "..", "data", "pieces_mine")
 
 
@@ -13,8 +14,9 @@ class SpriteLibrary:
         self._frames_cache = {}
         self._config_cache = {}
 
-    def get_frame(self, kind, color, state, elapsed_seconds):
-        frames = self._load_frames(kind, color, state)
+    def get_frame(self, kind, color, state, elapsed_seconds, size):
+        """size: (width, height) in pixels to load/scale each sprite frame to."""
+        frames = self._load_frames(kind, color, state, size)
         config = self._load_config(kind, color, state)
 
         fps = config["graphics"]["frames_per_sec"]
@@ -26,25 +28,20 @@ class SpriteLibrary:
         else:
             frame_index = min(frame_index, len(frames) - 1)
 
-        return frames[frame_index]
+        return frames[frame_index]  # an Img, already sized
 
     def _state_dir(self, kind, color, state):
         code = self._piece_code(kind, color)
         return os.path.join(self.root, code, "states", state)
 
-    def _load_frames(self, kind, color, state):
-        key = (self._piece_code(kind, color), state)
+    def _load_frames(self, kind, color, state, size):
+        key = (self._piece_code(kind, color), state, size)
         if key not in self._frames_cache:
             sprites_dir = os.path.join(self._state_dir(kind, color, state), "sprites")
             filenames = sorted(
                 f for f in os.listdir(sprites_dir) if f.lower().endswith(".png")
             )
-            frames = []
-            for fname in filenames:
-                img = cv2.imread(os.path.join(sprites_dir, fname), cv2.IMREAD_UNCHANGED)
-                if img is None:
-                    raise FileNotFoundError(f"Sprite not found: {fname}")
-                frames.append(img)
+            frames = [Img().read(os.path.join(sprites_dir, fname), size=size) for fname in filenames]
             self._frames_cache[key] = frames
         return self._frames_cache[key]
 

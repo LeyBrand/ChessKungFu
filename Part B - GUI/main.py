@@ -21,7 +21,7 @@ wR wN wB wQ wK wB wN wR
 
 def main():
     display = DisplayManager(window_name="Chess Game")
-    base_img = Img().read("data/board.png").img
+    base_img = Img().read("data/board.png")
 
     bridge = BusinessBridge(STARTING_BOARD_TEXT)
 
@@ -34,7 +34,10 @@ def main():
     mouse_observer = MouseObserver()
     mouse_observer.subscribe(handle_click, "left")
     mouse_observer.subscribe(handle_jump, "right")
-    display.setup_mouse_callback(mouse_observer.get_callback())
+    display.setup_mouse_callback(
+        on_left_click=lambda x, y: mouse_observer.notify(x, y, "left"),
+        on_right_click=lambda x, y: mouse_observer.notify(x, y, "right"),
+    )
 
     last_time = time.time()
 

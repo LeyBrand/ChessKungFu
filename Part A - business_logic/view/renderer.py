@@ -2,10 +2,12 @@ def build_board_snapshot(snapshot):
     return {
         "pieces": [
             {
+                "id": p["id"],
                 "kind": p["kind"],
                 "color": p["color"],
                 "position": p["cell"],           # (col, row) לוגי
                 "motion": _extract_motion(p),     # None או {"from": (col,row), "to": (col,row), "progress": 0..1}
+                "state": p["state"],              # idle / moving / jumping / captured
             } for p in snapshot.pieces
         ],
         "selected_cell": snapshot.selected_cell,
