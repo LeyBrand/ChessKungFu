@@ -2,7 +2,9 @@ import os
 import json
 import cv2
 
-DEFAULT_SPRITES_ROOT = os.path.join(os.path.dirname(__file__), "data", "pieces_mine")
+# sprite_library.py now lives one level deeper (rendering/), so we go up
+# one extra level to reach Part B - GUI/data/pieces_mine
+DEFAULT_SPRITES_ROOT = os.path.join(os.path.dirname(__file__), "..", "data", "pieces_mine")
 
 
 class SpriteLibrary:

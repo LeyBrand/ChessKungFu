@@ -61,7 +61,9 @@ class Controller:
     def _handle_jump(self, args, board):
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)
-        self.engine.jump(Position(col, row))
+        pos = Position(col, row)
+        result = self.engine.jump(pos)
+        print(f"JUMP {pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 
     def _handle_wait(self, args, board):
         ms = int(args[0])

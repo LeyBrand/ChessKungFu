@@ -75,11 +75,13 @@ class GameEngine:
         now = self.arbiter.now()
         piece.set_state(PieceState.JUMPING)
         self.state.board.remove_piece(pos)
+        land_time = now + MOVE_MS
         self.airborne.append({
             "piece": piece,
             "origin": pos,
-            "land_time": now + MOVE_MS
+            "land_time": land_time
         })
+        print(f"JUMP TAKEOFF piece={piece.id} at {pos}, now={now}ms, will land at {land_time}ms")  # זמני לדיבוג
 
         return MoveResult(True, "ok")
 
@@ -100,6 +102,9 @@ class GameEngine:
 
                 occupant = self.state.board.get_piece_at(origin)
                 self.state.board.place_piece(piece, origin)
+                piece.set_state(PieceState.IDLE)
+                print(f"JUMP LANDING piece={piece.id} back at {origin}, now={now}ms"
+                      + (f", captured occupant={occupant.id}" if occupant is not None else ""))  # זמני לדיבוג
 
                 if occupant is not None and occupant.kind == "K":
                     self.state.game_over = True

@@ -10,6 +10,7 @@ def build_board_snapshot(snapshot):
         ],
         "selected_cell": snapshot.selected_cell,
         "is_game_over": snapshot.game_over,
+        "timestamp_ms": snapshot.timestamp,
     }
 
 def _extract_motion(piece_view):
