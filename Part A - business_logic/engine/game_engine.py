@@ -53,10 +53,16 @@ class GameEngine:
         now = self.arbiter.now()
         motion = Motion(piece, from_pos, to_pos, now)
         self.arbiter.add_motion(motion)
+
+        occupant = self.state.board.get_piece_at(to_pos)
         self.move_history.append({
             "from": (from_pos.col, from_pos.row),
             "to": (to_pos.col, to_pos.row),
-            "piece_id": piece.id
+            "piece_id": piece.id,
+            "color": piece.color,
+            "kind": piece.kind,
+            "captured": occupant is not None,
+            "time_ms": now,
         })
 
         return MoveResult(True, "ok")
@@ -76,10 +82,24 @@ class GameEngine:
         piece.set_state(PieceState.JUMPING)
         self.state.board.remove_piece(pos)
         land_time = now + MOVE_MS
+
+        move_entry = {
+            "from": (pos.col, pos.row),
+            "to": (pos.col, pos.row),
+            "piece_id": piece.id,
+            "color": piece.color,
+            "kind": piece.kind,
+            "captured": False,
+            "time_ms": now,
+            "is_jump": True,
+        }
+        self.move_history.append(move_entry)
+
         self.airborne.append({
             "piece": piece,
             "origin": pos,
-            "land_time": land_time
+            "land_time": land_time,
+            "move_entry": move_entry,
         })
         print(f"JUMP TAKEOFF piece={piece.id} at {pos}, now={now}ms, will land at {land_time}ms")  # זמני לדיבוג
 
@@ -103,13 +123,15 @@ class GameEngine:
                 occupant = self.state.board.get_piece_at(origin)
                 self.state.board.place_piece(piece, origin)
                 piece.set_state(PieceState.IDLE)
+
+                if entry.get("move_entry") is not None:
+                    entry["move_entry"]["captured"] = occupant is not None
+
                 print(f"JUMP LANDING piece={piece.id} back at {origin}, now={now}ms"
                       + (f", captured occupant={occupant.id}" if occupant is not None else ""))  # זמני לדיבוג
 
                 if occupant is not None and occupant.kind == "K":
                     self.state.game_over = True
-            else:
-                still_airborne.append(entry)
 
         self.airborne = still_airborne
 
@@ -167,4 +189,5 @@ class GameEngine:
             selected_cell=selected_cell,
             game_over=self.state.game_over,
             timestamp=now,
+            move_history=list(self.move_history),
         )

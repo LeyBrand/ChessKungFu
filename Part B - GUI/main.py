@@ -4,7 +4,7 @@ from data.img import Img
 from bridge.business_bridge import BusinessBridge
 from controls.input_handler import MouseObserver
 from window.display_manager import DisplayManager
-from rendering.frame_renderer import render_frame
+from rendering.frame_renderer import render_frame, SIDEBAR_WIDTH
 
 
 STARTING_BOARD_TEXT = """
@@ -22,14 +22,19 @@ wR wN wB wQ wK wB wN wR
 def main():
     display = DisplayManager(window_name="Chess Game")
     base_img = Img().read("data/board.png")
+    board_width_px = base_img.width  # board's own pixel width, BEFORE sidebars are added
 
     bridge = BusinessBridge(STARTING_BOARD_TEXT)
 
     def handle_click(x, y):
-        bridge.handle_click(x, y)
+        board_x = x - SIDEBAR_WIDTH
+        if 0 <= board_x < board_width_px:
+            bridge.handle_click(board_x, y)
 
     def handle_jump(x, y):
-        bridge.handle_jump(x, y)
+        board_x = x - SIDEBAR_WIDTH
+        if 0 <= board_x < board_width_px:
+            bridge.handle_jump(board_x, y)
 
     mouse_observer = MouseObserver()
     mouse_observer.subscribe(handle_click, "left")
