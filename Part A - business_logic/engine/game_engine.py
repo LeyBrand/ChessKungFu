@@ -132,6 +132,8 @@ class GameEngine:
 
                 if occupant is not None and occupant.kind == "K":
                     self.state.game_over = True
+            else:
+                still_airborne.append(entry)
 
         self.airborne = still_airborne
 
