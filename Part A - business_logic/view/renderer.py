@@ -13,9 +13,7 @@ def build_board_snapshot(snapshot):
         "selected_cell": snapshot.selected_cell,
         "is_game_over": snapshot.game_over,
         "timestamp_ms": snapshot.timestamp,
-        "move_history": snapshot.move_history,   # <-- הוסף שורה זו
+        "move_history": snapshot.move_history, 
     }
 def _extract_motion(piece_view):
-    # רק אם GameEngine בעתיד יחשוף motion logical (start_cell/end_cell/progress)
-    # ולא pixel/start_pixel/end_pixel כמו היום
     return piece_view.get("motion")

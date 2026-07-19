@@ -5,7 +5,7 @@ OPPONENT = {"white": "black", "black": "white"}
 
 class ScoreTracker:
     def __init__(self):
-        self._last_seen = {}           # id -> {"kind": ..., "color": ...}
+        self._last_seen = {}
         self._already_counted = set()  
         self.scores = {"white": 0, "black": 0}
 

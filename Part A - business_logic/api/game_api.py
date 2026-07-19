@@ -13,7 +13,6 @@ class GameSession:
 
     @classmethod
     def new_game(cls, board_text):
-        """Build a GameSession directly from a textual board layout."""
         board = parse_board(board_text)
         if board is None:
             raise ValueError("Could not parse board text")
@@ -35,8 +34,5 @@ class GameSession:
         return self.state.game_over
 
     def get_snapshot(self):
-        """Returns a plain dict ready for rendering:
-        {pieces, selected_cell, is_game_over, timestamp_ms}
-        """
         engine_snapshot = self.engine.snapshot(selected_pos=self.controller.selected_pos)
         return build_board_snapshot(engine_snapshot)

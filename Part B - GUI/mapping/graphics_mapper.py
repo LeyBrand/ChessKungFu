@@ -2,17 +2,10 @@ DEFAULT_CELL_SIZE = 100
 
 
 def cell_to_pixel(col, row, cell_size=DEFAULT_CELL_SIZE):
-    """Static cell -> top-left pixel of that cell."""
     return (col * cell_size, row * cell_size)
 
 
 def piece_pixel(position, motion, cell_size=DEFAULT_CELL_SIZE):
-    """
-    Resolve the pixel position of a piece for one rendered frame.
-
-    position: (col, row) - the piece's logical cell
-    motion:   None, or {"from": (col, row), "to": (col, row), "progress": 0..1}
-    """
     if motion is None:
         col, row = position
         return cell_to_pixel(col, row, cell_size)

@@ -22,7 +22,7 @@ wR wN wB wQ wK wB wN wR
 def main():
     display = DisplayManager(window_name="Chess Game")
     base_img = Img().read("data/board.png")
-    board_width_px = base_img.width  # board's own pixel width, BEFORE sidebars are added
+    board_width_px = base_img.width
 
     bridge = BusinessBridge(STARTING_BOARD_TEXT)
 

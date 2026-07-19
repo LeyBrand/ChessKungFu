@@ -9,7 +9,6 @@ SPRITE_SCALE = 0.8
 SIDEBAR_WIDTH = 240
 MAX_ROWS_FALLBACK = 20
 
-# Colors are BGR (cv2 convention), roughly matching the reference screenshot
 PANEL_BG_COLOR = (190, 183, 188)
 HEADER_BG_COLOR = (255, 255, 255)
 HEADER_TEXT_COLOR = (0, 0, 0)
@@ -19,12 +18,12 @@ ROW_ALT_COLOR = (222, 218, 222)
 TEXT_COLOR = (40, 40, 40)
 
 HEADER_HEIGHT = 36
-SCORE_HEIGHT = 24          # <-- הוסף שורה זו
+SCORE_HEIGHT = 24
 COLUMN_HEADER_HEIGHT = 26
 ROW_HEIGHT = 24
 TIME_COL_WIDTH = 100
 MOVE_COL_WIDTH = 90
-SCORE_TEXT_COLOR = (0, 90, 0)   # <-- הוסף שורה זו
+SCORE_TEXT_COLOR = (0, 90, 0)
 
 _sprite_library = SpriteLibrary()
 _score_tracker = ScoreTracker()
@@ -83,7 +82,6 @@ def _split_history_by_color(move_history):
 
 
 def _cell_name(col, row):
-    # col 0-7 -> 'a'-'h'; flip "8 - row" if row 0 isn't rank 8 on your board.
     return f"{chr(ord('a') + col)}{8 - row}"
 
 

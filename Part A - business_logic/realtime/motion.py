@@ -6,7 +6,6 @@ class Motion:
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.start_time = start_time
-
         distance = max(abs(end_pos.col - start_pos.col), abs(end_pos.row - start_pos.row))
         self.duration_ms = distance * MOVE_MS
 

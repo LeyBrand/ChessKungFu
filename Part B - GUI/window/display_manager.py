@@ -1,9 +1,3 @@
-"""
-Owns the OS window lifecycle for the game (create/show/close). Delegates
-every actual cv2 call to Img (data/img.py) - this file no longer imports
-cv2 directly.
-"""
-
 from data.img import Img
 
 
@@ -11,8 +5,6 @@ class DisplayManager:
     def __init__(self, window_name="Chess Game"):
         self.window_name = window_name
         self.current_frame = None
-        # Placeholder Img used only for window-level calls that don't need
-        # pixel data (create_window / set_mouse_callback / close_window).
         self._window = Img()
         self._window.create_window(self.window_name)
         self._running = True
