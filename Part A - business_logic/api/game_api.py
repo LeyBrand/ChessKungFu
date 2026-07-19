@@ -6,17 +6,17 @@ from view.renderer import build_board_snapshot
 
 
 class GameSession:
-    def __init__(self, board):
+    def __init__(self, board, event_bus = None):
         self.state = GameState(board)
-        self.engine = GameEngine(self.state)
+        self.engine = GameEngine(self.state, event_bus = event_bus)
         self.controller = Controller(self.engine)
 
     @classmethod
-    def new_game(cls, board_text):
+    def new_game(cls, board_text, event_bus = None):
         board = parse_board(board_text)
         if board is None:
             raise ValueError("Could not parse board text")
-        return cls(board)
+        return cls(board, event_bus = event_bus)
 
     # ---- input -----------------------------------------------------
     def handle_click(self, x, y):

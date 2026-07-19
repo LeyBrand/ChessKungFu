@@ -15,8 +15,9 @@ class MoveResult:
 
 
 class GameEngine:
-    def __init__(self, state):
+    def __init__(self, state, event_bus = None):
         self.state = state
+        self.event_bus = event_bus
         self.arbiter = RealTimeArbiter(self.state.board)
         self.move_history = []
         self.airborne = []
@@ -65,6 +66,8 @@ class GameEngine:
             "time_ms": now,
         })
 
+        if self.event_bus is not None:
+            self.event_bus.publish("MOVE_MADE", **self.move_history[-1])
         return MoveResult(True, "ok")
 
     def jump(self, pos):
