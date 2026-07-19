@@ -9,7 +9,6 @@ class Controller:
         self.selected_pos = None
         self.actions = {
             "click": self._handle_click,
-            "print": self._handle_print,
             "wait": self._handle_wait,
             "jump": self._handle_jump,
         }
@@ -58,20 +57,25 @@ class Controller:
 
         self.selected_pos = None
         
+    def _handle_jump(self, args, board):
+        # x, y (args) לא בשימוש יותר - הכלי שקופץ הוא זה שכבר נבחר
+        # (בדיוק כמו שהקליק השני לא "מזהה מחדש" את הכלי הנבחר).
+        self.jump(board)
+
     def jump(self, board):
+        """
+        Launches whichever piece is currently selected - the jump
+        counterpart of click()'s second-click branch. Requires a prior
+        click() to have selected a piece; otherwise it's a no-op.
+        """
         if self.selected_pos is None:
             return
+
         result = self.engine.jump(self.selected_pos)
         print(f"JUMP {self.selected_pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
+
         self.selected_pos = None
-    
-    def _handle_jump(self, args, board):
-        self.jump(board)
 
     def _handle_wait(self, args, board):
         ms = int(args[0])
         self.engine.wait(ms)
-
-    def _handle_print(self, args, board):
-        from data_io.board_printer import print_board
-        print_board(board)

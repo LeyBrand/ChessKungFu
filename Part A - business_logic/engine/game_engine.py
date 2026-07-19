@@ -98,6 +98,9 @@ class GameEngine:
         }
         self.move_history.append(move_entry)
 
+        if self.event_bus is not None:
+            self.event_bus.publish("MOVE_MADE", **move_entry)
+
         self.airborne.append({
             "piece": piece,
             "origin": pos,
@@ -134,10 +137,21 @@ class GameEngine:
                 print(f"JUMP LANDING piece={piece.id} back at {origin}, now={now}ms"
                       + (f", captured occupant={occupant.id}" if occupant is not None else ""))  # זמני לדיבוג
 
-                if occupant is not None and occupant.kind == "K":
-                    self.state.game_over = True
+                if occupant is not None:
                     if self.event_bus is not None:
-                        self.event_bus.publish("GAME_OVER")
+                        self.event_bus.publish(
+                            "PIECE_CAPTURED",
+                            piece_id=occupant.id,
+                            kind=occupant.kind,
+                            color=occupant.color,
+                            captured_by=piece.color,
+                            time_ms=now,
+                        )
+
+                    if occupant.kind == "K":
+                        self.state.game_over = True
+                        if self.event_bus is not None:
+                            self.event_bus.publish("GAME_OVER")
             else:
                 still_airborne.append(entry)
 

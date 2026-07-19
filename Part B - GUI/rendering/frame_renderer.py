@@ -75,8 +75,16 @@ def _draw_pieces(frame, pieces, cell_size, elapsed_seconds):
     for piece in pieces:
         if piece.get("state") == "captured":
             continue
+
         x, y = piece_pixel(piece["position"], piece["motion"], cell_size)
-        state = "move" if piece["motion"] is not None else "idle"
+
+        if piece["state"] == "jumping":
+            state = "jump"
+        elif piece["motion"] is not None:
+            state = "move"
+        else:
+            state = "idle"
+
         sprite = _sprite_library.get_frame(
             piece["kind"], piece["color"], state, elapsed_seconds,
             size=(sprite_size, sprite_size),
