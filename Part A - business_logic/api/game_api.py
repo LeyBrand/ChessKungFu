@@ -11,6 +11,9 @@ class GameSession:
         self.engine = GameEngine(self.state, event_bus = event_bus)
         self.controller = Controller(self.engine)
 
+        if event_bus is not None:
+            event_bus.publish("GAME_STARTED")
+
     @classmethod
     def new_game(cls, board_text, event_bus = None):
         board = parse_board(board_text)

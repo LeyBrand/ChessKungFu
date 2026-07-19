@@ -6,8 +6,9 @@ from model.piece import PieceState
 
 
 class RealTimeArbiter:
-    def __init__(self, board):
+    def __init__(self, board, event_bus = None):
         self.board = board
+        self.event_bus = event_bus
         self.game_clock_ms = 0
         self.active_motions = []
 
@@ -52,6 +53,16 @@ class RealTimeArbiter:
 
         for motion in completed_motions:
             captured_piece = self.board.get_piece_at(motion.end_pos)
+            if captured_piece is not None and self.event_bus is not None:
+                self.event_bus.publish(
+                   "PIECE_CAPTURED",
+                    piece_id=captured_piece.id,
+                    kind=captured_piece.kind,
+                    color=captured_piece.color,
+                    captured_by=motion.piece.color,
+                    time_ms=self.game_clock_ms,
+                )
+
 
             if motion.piece.state != PieceState.CAPTURED:
                 self.board.move_piece(motion.start_pos, motion.end_pos)

@@ -18,7 +18,7 @@ class GameEngine:
     def __init__(self, state, event_bus = None):
         self.state = state
         self.event_bus = event_bus
-        self.arbiter = RealTimeArbiter(self.state.board)
+        self.arbiter = RealTimeArbiter(self.state.board, event_bus = event_bus)
         self.move_history = []
         self.airborne = []
 
@@ -111,7 +111,8 @@ class GameEngine:
     def wait(self, ms):
         if self.arbiter.advance_time(ms):
             self.state.game_over = True
-
+            if self.event_bus is not None:
+                self.event_bus.publish("GAME_OVER")
         self._resolve_airborne()
 
     def _resolve_airborne(self):
@@ -135,6 +136,8 @@ class GameEngine:
 
                 if occupant is not None and occupant.kind == "K":
                     self.state.game_over = True
+                    if self.event_bus is not None:
+                        self.event_bus.publish("GAME_OVER")
             else:
                 still_airborne.append(entry)
 
