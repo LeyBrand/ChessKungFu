@@ -58,12 +58,15 @@ class Controller:
 
         self.selected_pos = None
         
+    def jump(self, board):
+        if self.selected_pos is None:
+            return
+        result = self.engine.jump(self.selected_pos)
+        print(f"JUMP {self.selected_pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
+        self.selected_pos = None
+    
     def _handle_jump(self, args, board):
-        x, y = int(args[0]), int(args[1])
-        col, row = pixel_to_cell(x, y)
-        pos = Position(col, row)
-        result = self.engine.jump(pos)
-        print(f"JUMP {pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
+        self.jump(board)
 
     def _handle_wait(self, args, board):
         ms = int(args[0])
