@@ -6,7 +6,7 @@ from model.piece import PieceState
 
 
 class RealTimeArbiter:
-    def __init__(self, board, event_bus = None):
+    def __init__(self, board, event_bus=None):
         self.board = board
         self.event_bus = event_bus
         self.game_clock_ms = 0
@@ -47,22 +47,42 @@ class RealTimeArbiter:
 
                 if same_destination or swapped_path:
                     if motion1.start_time <= motion2.start_time:
-                        motion2.piece.set_state(PieceState.CAPTURED)
+                        captured, capturer = motion2.piece, motion1.piece
                     else:
-                        motion1.piece.set_state(PieceState.CAPTURED)
+                        captured, capturer = motion1.piece, motion2.piece
+
+                    captured.set_state(PieceState.CAPTURED)
+
+                    if self.event_bus is not None:
+                        self.event_bus.publish(
+                            "PIECE_CAPTURED",
+                            piece_id=captured.id,
+                            kind=captured.kind,
+                            color=captured.color,
+                            captured_by=capturer.color,
+                            time_ms=self.game_clock_ms,
+                        )
+
+        # Snapshot who was already sitting at each destination BEFORE any
+        # motion in this batch lands - otherwise a sibling motion landing on
+        # the same square (already handled above, as a mid-air collision)
+        # would be misread here as a second, separate capture.
+        occupant_before_landing = {
+            motion: self.board.get_piece_at(motion.end_pos) for motion in completed_motions
+        }
 
         for motion in completed_motions:
-            captured_piece = self.board.get_piece_at(motion.end_pos)
+            captured_piece = occupant_before_landing[motion]
+
             if captured_piece is not None and self.event_bus is not None:
                 self.event_bus.publish(
-                   "PIECE_CAPTURED",
+                    "PIECE_CAPTURED",
                     piece_id=captured_piece.id,
                     kind=captured_piece.kind,
                     color=captured_piece.color,
                     captured_by=motion.piece.color,
                     time_ms=self.game_clock_ms,
                 )
-
 
             if motion.piece.state != PieceState.CAPTURED:
                 self.board.move_piece(motion.start_pos, motion.end_pos)

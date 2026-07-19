@@ -7,10 +7,11 @@ if _PART_A_DIR not in sys.path:
     sys.path.insert(0, os.path.abspath(_PART_A_DIR))
 
 from api.game_api import GameSession  # noqa: E402  (import after sys.path setup)
-
+from events.event_bus import EventBus  # noqa: E402 
 
 class BusinessBridge:
     def __init__(self, board_text):
+        self.event_bus = EventBus()
         self._session = GameSession.new_game(board_text)
 
     # ---- input ---------------------------------------------------------

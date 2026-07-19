@@ -1,35 +1,16 @@
 from scoring.piece_values import value_of
 
-OPPONENT = {"white": "black", "black": "white"}
-
 
 class ScoreTracker:
-    def __init__(self):
-        self._last_seen = {}
-        self._already_counted = set()  
+    def __init__(self, event_bus=None):
         self.scores = {"white": 0, "black": 0}
 
-    def update(self, pieces):
-        current_ids = set()
+        if event_bus is not None:
+            event_bus.subscribe("PIECE_CAPTURED", self._on_piece_captured)
 
-        for piece in pieces:
-            pid = piece["id"]
-            current_ids.add(pid)
-            self._last_seen[pid] = {"kind": piece["kind"], "color": piece["color"]}
+    def _on_piece_captured(self, piece_id, kind, color, captured_by, time_ms):
+        print(f"DEBUG: PIECE_CAPTURED received! {captured_by} captured {color} {kind}")  # זמני
+        self.scores[captured_by] += value_of(kind)
 
-            if piece.get("state") == "captured":
-                self._count_capture(pid)
-
-        vanished_ids = set(self._last_seen.keys()) - current_ids - self._already_counted
-        for pid in vanished_ids:
-            self._count_capture(pid)
-
+    def get_scores(self):
         return dict(self.scores)
-
-    def _count_capture(self, pid):
-        if pid in self._already_counted:
-            return
-        info = self._last_seen[pid]
-        capturer = OPPONENT[info["color"]]
-        self.scores[capturer] += value_of(info["kind"])
-        self._already_counted.add(pid)

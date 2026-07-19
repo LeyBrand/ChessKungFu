@@ -28,6 +28,9 @@ SCORE_TEXT_COLOR = (0, 90, 0)
 _sprite_library = SpriteLibrary()
 _score_tracker = ScoreTracker()
 
+def init_scoring(event_bus):
+    global _score_tracker
+    _score_tracker = ScoreTracker(event_bus = event_bus)
 
 def render_frame(base_img, board_snapshot, cell_size):
     board_frame = base_img.copy()
@@ -40,7 +43,7 @@ def render_frame(base_img, board_snapshot, cell_size):
         board_frame.put_text("GAME OVER", cell_size * 2, cell_size * 4, 1.2, GAME_OVER_COLOR, 3)
     frame = board_frame.with_side_panels(SIDEBAR_WIDTH, SIDEBAR_WIDTH, PANEL_BG_COLOR)
 
-    scores = _score_tracker.update(board_snapshot["pieces"])
+    scores = _score_tracker.get_scores()
     white_moves, black_moves = _split_history_by_color(board_snapshot.get("move_history", []))
 
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
