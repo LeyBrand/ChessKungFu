@@ -12,7 +12,7 @@ from events.event_bus import EventBus  # noqa: E402
 class BusinessBridge:
     def __init__(self, board_text):
         self.event_bus = EventBus()
-        self._session = GameSession.new_game(board_text)
+        self._session = GameSession.new_game(board_text, event_bus = self.event_bus)
 
     # ---- input ---------------------------------------------------------
     def handle_click(self, x, y):
