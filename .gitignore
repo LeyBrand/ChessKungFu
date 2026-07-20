@@ -6,3 +6,4 @@ htmlcov/
 __init__.py
 conftest.py
 data/
+Part C - Server/data/players.db

@@ -45,7 +45,7 @@ wR .  .  .  .  .  .  .
 @pytest.mark.asyncio
 async def test_real_client_sees_game_over_after_king_capture_over_the_wire():
     bridge = BusinessBridge(GAME_OVER_BOARD_TEXT)
-    server = GameServer(bridge=bridge)
+    server = GameServer(bridge=bridge, prompt_username=lambda ws: "test-player")
 
     tick_task = None
     async with websockets.serve(server.handle_client, TEST_HOST, TEST_PORT):
