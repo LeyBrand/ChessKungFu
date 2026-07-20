@@ -6,11 +6,22 @@ thin runner script, so GameServer itself stays easy to unit test.
 import asyncio
 import json
 
+from player_registry import PlayerRegistry, ServerFullError
+
+
+def _default_prompt_username(websocket):
+    """Blocking terminal prompt on the SERVER's own console. Run through
+    an executor by _prompt_username so it never blocks the event loop."""
+    peer = getattr(websocket, "remote_address", "unknown")
+    return input(f"New connection from {peer} - enter username: ")
+
 
 class GameServer:
-    def __init__(self, bridge):
+    def __init__(self, bridge, player_registry=None, prompt_username=_default_prompt_username):
         self.bridge = bridge
         self.clients = set()
+        self.player_registry = player_registry or PlayerRegistry()
+        self._prompt_username = prompt_username
 
     async def register(self, websocket):
         self.clients.add(websocket)
@@ -29,6 +40,24 @@ class GameServer:
         )
 
     async def handle_client(self, websocket):
+        if self.player_registry.is_full():
+            await websocket.send(json.dumps({"type": "error", "message": "Server is full"}))
+            await websocket.close()
+            return
+
+        loop = asyncio.get_event_loop()
+        username = await loop.run_in_executor(None, self._prompt_username, websocket)
+
+        try:
+            color = self.player_registry.register(websocket, username)
+        except ServerFullError:
+            # two clients raced for the last slot - whoever loses gets rejected
+            await websocket.send(json.dumps({"type": "error", "message": "Server is full"}))
+            await websocket.close()
+            return
+
+        print(f"{username} joined as {color}")
+
         await self.register(websocket)
         try:
             await self.broadcast_state()
@@ -37,6 +66,7 @@ class GameServer:
                 await self.broadcast_state()
         finally:
             await self.unregister(websocket)
+            self.player_registry.unregister(websocket)
 
     async def _handle_message(self, raw):
         data = json.loads(raw)
