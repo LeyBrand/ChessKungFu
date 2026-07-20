@@ -25,6 +25,7 @@ for path in (_PART_C_DIR, _PART_B_DIR):
 
 from bridge.business_bridge import BusinessBridge  # noqa: E402
 from game_server import GameServer  # noqa: E402
+from data.player_store import PlayerStore  # noqa: E402
 
 TEST_HOST = "localhost"
 TEST_PORT = 8767  # different from the real app's 8765, to avoid clashing with a running server
@@ -45,7 +46,12 @@ wR .  .  .  .  .  .  .
 @pytest.mark.asyncio
 async def test_real_client_sees_game_over_after_king_capture_over_the_wire():
     bridge = BusinessBridge(GAME_OVER_BOARD_TEXT)
-    server = GameServer(bridge=bridge, prompt_username=lambda ws: "test-player")
+    server = GameServer(
+        bridge=bridge,
+        player_store=PlayerStore(db_path=":memory:"),
+        prompt_username=lambda ws: "test-player",
+        prompt_password=lambda ws, text: "test-password",
+    )
 
     tick_task = None
     async with websockets.serve(server.handle_client, TEST_HOST, TEST_PORT):
