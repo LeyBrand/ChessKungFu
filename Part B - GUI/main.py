@@ -4,7 +4,9 @@ from data.img import Img
 from bridge.business_bridge import BusinessBridge
 from controls.input_handler import MouseObserver
 from window.display_manager import DisplayManager
-from rendering.frame_renderer import render_frame, SIDEBAR_WIDTH, init_scoring, init_move_log
+from rendering.frame_renderer import (
+    render_frame, SIDEBAR_WIDTH, init_scoring, init_move_log, init_animations, init_sound,
+)
 
 
 STARTING_BOARD_TEXT = """
@@ -27,6 +29,8 @@ def main():
     bridge = BusinessBridge(STARTING_BOARD_TEXT)
     init_scoring(bridge.event_bus)
     init_move_log(bridge.event_bus)
+    init_animations(bridge.event_bus)
+    init_sound(bridge.event_bus)
 
     def handle_click(x, y):
         board_x = x - SIDEBAR_WIDTH

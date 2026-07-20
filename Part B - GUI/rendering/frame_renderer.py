@@ -1,7 +1,10 @@
 from mapping.graphics_mapper import cell_to_pixel, piece_pixel
 from rendering.sprite_library import SpriteLibrary
+from rendering.animation_tracker import AnimationTracker
 from scoring.score_tracker import ScoreTracker
 from scoring.move_log_tracker import MoveLogTracker
+from audio.sound_tracker import SoundTracker
+from audio.sound_player import SoundPlayer
 
 SELECTED_OUTLINE = (51, 51, 255)
 GAME_OVER_COLOR = (0, 0, 255)
@@ -29,6 +32,8 @@ SCORE_TEXT_COLOR = (0, 90, 0)
 _sprite_library = SpriteLibrary()
 _score_tracker = ScoreTracker()
 _move_log_tracker = MoveLogTracker()
+_animation_tracker = AnimationTracker()
+_sound_tracker = SoundTracker()
 
 def init_scoring(event_bus):
     global _score_tracker
@@ -37,6 +42,14 @@ def init_scoring(event_bus):
 def init_move_log(event_bus):
     global _move_log_tracker
     _move_log_tracker = MoveLogTracker(event_bus=event_bus)
+
+def init_animations(event_bus):
+    global _animation_tracker
+    _animation_tracker = AnimationTracker(event_bus=event_bus)
+
+def init_sound(event_bus, sound_player=None):
+    global _sound_tracker
+    _sound_tracker = SoundTracker(event_bus=event_bus, sound_player=sound_player or SoundPlayer())
 
 def render_frame(base_img, board_snapshot, cell_size):
     board_frame = base_img.copy()
