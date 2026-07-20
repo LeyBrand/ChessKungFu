@@ -1,8 +1,3 @@
-"""
-GameServer: owns the single BusinessBridge instance and the set of
-connected clients. No asyncio.serve() call here - that lives in a
-thin runner script, so GameServer itself stays easy to unit test.
-"""
 import asyncio
 import json
 

@@ -1,9 +1,3 @@
-"""
-PlayerRegistry: maps a connected websocket to a (username, color) pair.
-Pure bookkeeping - no networking, no I/O - so it's trivial to unit test.
-"""
-
-
 class ServerFullError(Exception):
     pass
 

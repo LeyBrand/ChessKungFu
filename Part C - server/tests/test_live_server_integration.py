@@ -1,13 +1,3 @@
-"""
-Real end-to-end sanity check: opens an actual TCP/WebSocket server
-(no fakes anywhere), connects a real client to it, plays a king
-capture, and confirms the client sees GAME_OVER over the wire.
-
-This is slower and heavier than test_game_server.py on purpose - it's
-meant to be run by hand when you want to be sure the whole stack
-(Part A + Part B's BusinessBridge + Part C's GameServer + a real
-socket) actually works together, not just the unit-tested pieces.
-"""
 import asyncio
 import json
 import os

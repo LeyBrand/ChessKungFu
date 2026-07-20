@@ -9,13 +9,10 @@ from data.player_store import PlayerStore
 
 
 def fresh_store():
-    """A brand-new in-memory PlayerStore - never touches the real players.db
-    file on disk, and starts with zero registered users every test."""
     return PlayerStore(db_path=":memory:")
 
 
 class FakeWebSocket:
-    """Stand-in for a real websockets connection object - just needs to be hashable."""
     pass
 
 
@@ -113,8 +110,6 @@ async def test_handle_message_routes_jump_to_bridge():
 
 
 class FakeStreamingWebSocket:
-    """Simulates a connection that yields a fixed list of messages, then disconnects."""
-
     def __init__(self, messages):
         self._messages = iter(messages)
         self.sent_messages = []
@@ -136,8 +131,6 @@ class FakeStreamingWebSocket:
 
 
 def fake_prompts(username="alice", password="pw"):
-    """Fixed-answer fake prompts - simulates a person typing the same
-    username/password every time, without touching a real terminal."""
     return (lambda ws: username), (lambda ws, text: password)
 
 
@@ -165,9 +158,6 @@ async def test_handle_client_processes_messages_then_unregisters():
 
 
 class HeldOpenWebSocket:
-    """Stays 'connected' (async iteration blocks) until release() is called -
-    lets a test keep two clients simultaneously connected."""
-
     def __init__(self, username):
         self.username = username
         self.sent_messages = []
