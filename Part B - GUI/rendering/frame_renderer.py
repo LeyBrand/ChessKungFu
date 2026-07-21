@@ -1,10 +1,7 @@
 from mapping.graphics_mapper import cell_to_pixel, piece_pixel
 from rendering.sprite_library import SpriteLibrary
-from rendering.animation_tracker import AnimationTracker
 from scoring.score_tracker import ScoreTracker
 from scoring.move_log_tracker import MoveLogTracker
-from audio.sound_tracker import SoundTracker
-from audio.sound_player import SoundPlayer
 
 SELECTED_OUTLINE = (51, 51, 255)
 GAME_OVER_COLOR = (0, 0, 255)
@@ -32,8 +29,6 @@ SCORE_TEXT_COLOR = (0, 90, 0)
 _sprite_library = SpriteLibrary()
 _score_tracker = ScoreTracker()
 _move_log_tracker = MoveLogTracker()
-_animation_tracker = AnimationTracker()
-_sound_tracker = SoundTracker()
 
 def init_scoring(event_bus):
     global _score_tracker
@@ -42,14 +37,6 @@ def init_scoring(event_bus):
 def init_move_log(event_bus):
     global _move_log_tracker
     _move_log_tracker = MoveLogTracker(event_bus=event_bus)
-
-def init_animations(event_bus):
-    global _animation_tracker
-    _animation_tracker = AnimationTracker(event_bus=event_bus)
-
-def init_sound(event_bus, sound_player=None):
-    global _sound_tracker
-    _sound_tracker = SoundTracker(event_bus=event_bus, sound_player=sound_player or SoundPlayer())
 
 def render_frame(base_img, board_snapshot, cell_size):
     board_frame = base_img.copy()
@@ -64,7 +51,7 @@ def render_frame(base_img, board_snapshot, cell_size):
 
     scores = _score_tracker.get_scores()
     white_moves, black_moves = _split_history_by_color(_move_log_tracker.get_moves())
-    
+
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
                       title="Black", score=scores["black"], moves=black_moves)
     _draw_side_panel(frame, x_start=SIDEBAR_WIDTH + board_frame.width, panel_width=SIDEBAR_WIDTH,
@@ -149,7 +136,6 @@ def _draw_side_panel(frame, x_start, panel_width, title, score, moves):
 
     frame.draw_rect((x_start, 0), (x_start + panel_width, frame.height), PANEL_BG_COLOR, -1)
 
-    # Title header
     header_y1 = 10
     header_y2 = header_y1 + HEADER_HEIGHT
     frame.draw_rect((box_x1, header_y1), (box_x2, header_y2), HEADER_BG_COLOR, -1)
@@ -158,14 +144,12 @@ def _draw_side_panel(frame, x_start, panel_width, title, score, moves):
     title_y = header_y1 + (HEADER_HEIGHT + title_h) // 2
     frame.put_text(title, title_x, title_y, 0.7, HEADER_TEXT_COLOR, 2)
 
-    # Score line
     score_text = f"Score: {score}"
     score_y1 = header_y2 + 6
     score_w, score_h = frame.text_size(score_text, 0.55, 1)
     score_x = box_x1 + max(0, (box_x2 - box_x1 - score_w) // 2)
     frame.put_text(score_text, score_x, score_y1 + score_h, 0.55, SCORE_TEXT_COLOR, 1)
 
-    # Column headers
     table_y1 = score_y1 + SCORE_HEIGHT
     table_x1 = box_x1
     table_width = min(TIME_COL_WIDTH + MOVE_COL_WIDTH, box_x2 - box_x1)
@@ -177,7 +161,6 @@ def _draw_side_panel(frame, x_start, panel_width, title, score, moves):
     frame.put_text("Time", time_col_x, table_y1 + 18, 0.5, TEXT_COLOR, 1)
     frame.put_text("Move", move_col_x, table_y1 + 18, 0.5, TEXT_COLOR, 1)
 
-    # Rows
     rows_top = table_y1 + COLUMN_HEADER_HEIGHT
     max_rows = max(0, (frame.height - rows_top) // ROW_HEIGHT)
     recent = moves[-max_rows:] if max_rows > 0 else moves[-MAX_ROWS_FALLBACK:]

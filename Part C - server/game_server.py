@@ -8,8 +8,6 @@ MAX_PASSWORD_ATTEMPTS = 3
 
 
 def _default_prompt_username(websocket):
-    """Blocking terminal prompt on the SERVER's own console. Run through
-    an executor so it never blocks the event loop."""
     peer = getattr(websocket, "remote_address", "unknown")
     return input(f"New connection from {peer} - enter username: ")
 

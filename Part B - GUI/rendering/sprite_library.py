@@ -3,8 +3,6 @@ import json
 
 from data.img import Img
 
-# sprite_library.py lives in rendering/, so go up one level to reach
-# Part B - GUI/data/pieces_mine
 DEFAULT_SPRITES_ROOT = os.path.join(os.path.dirname(__file__), "..", "data", "pieces_mine")
 
 
@@ -15,7 +13,6 @@ class SpriteLibrary:
         self._config_cache = {}
 
     def get_frame(self, kind, color, state, elapsed_seconds, size):
-        """size: (width, height) in pixels to load/scale each sprite frame to."""
         frames = self._load_frames(kind, color, state, size)
         config = self._load_config(kind, color, state)
 
@@ -28,7 +25,7 @@ class SpriteLibrary:
         else:
             frame_index = min(frame_index, len(frames) - 1)
 
-        return frames[frame_index]  # an Img, already sized
+        return frames[frame_index]
 
     def _state_dir(self, kind, color, state):
         code = self._piece_code(kind, color)
