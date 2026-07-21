@@ -33,3 +33,12 @@ class TournametManager:
     def get_snapshot(self, room_id):
         return self._rooms[room_id].get_snapshot()
     
+    def create_waiting_room(self, board_text):
+        return self.create_room(board_text, player_ids={})
+    
+    def seat_player(self, room_id, color, player_id):
+        self._get_room(room_id).seat(color, player_id)
+
+    def is_room_full(self, room_id):
+        return self._get_room(room_id).is_full()
+    
