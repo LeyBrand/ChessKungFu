@@ -2,7 +2,7 @@ import sys
 import os
 
 _CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-_PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "..", "Part A - business logic")
+_PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "..", "Part A - business_logic")
 
 if _PART_A_DIR not in sys.path:
     sys.path.insert(0, os.path.abspath(_PART_A_DIR))

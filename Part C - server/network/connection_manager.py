@@ -8,12 +8,14 @@ class ConnectionManager:
     def __init__(self):
         self._connections = {}    # player_id -> websocket-like object
         self._room_players = {}   # room_id -> set of player_ids
+        self._usernames = {}      # player_id -> username
 
     def register(self, player_id, websocket):
         self._connections[player_id] = websocket
 
     def unregister(self, player_id):
         self._connections.pop(player_id, None)
+        self._usernames.pop(player_id, None)
         for players in self._room_players.values():
             players.discard(player_id)
 
@@ -28,3 +30,9 @@ class ConnectionManager:
 
     def is_connected(self, player_id):
         return player_id in self._connections
+
+    def set_username(self, player_id, username):
+        self._usernames[player_id] = username
+
+    def get_username(self, player_id):
+        return self._usernames.get(player_id)

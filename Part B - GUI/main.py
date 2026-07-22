@@ -5,7 +5,7 @@ from bridge.business_bridge import BusinessBridge
 from controls.input_handler import MouseObserver
 from window.display_manager import DisplayManager
 from rendering.frame_renderer import render_frame, SIDEBAR_WIDTH, init_scoring, init_move_log
-
+from screens.home_screen import HomeScreen
 
 STARTING_BOARD_TEXT = """
 bR bN bB bQ bK bB bN bR
@@ -20,6 +20,10 @@ wR wN wB wQ wK wB wN wR
 
 
 def main():
+    username = HomeScreen().run()
+    if username is None:
+        return  # user closed the login window
+
     display = DisplayManager(window_name="Chess Game")
     base_img = Img().read("data/board.png")
     board_width_px = base_img.width
