@@ -1,14 +1,27 @@
 import sys
+import ast
+import inspect
 
+from tournament import tournament_manager
 from tournament.tournament_manager import TournamentManager, UnknownRoomError
 from tests.conftest import STARTING_BOARD_TEXT
 
 
-def test_no_network_modules_loaded():
-    """The offline test: TournamentManager must not have pulled in
-    asyncio/websockets as a side effect of import. If this ever fails,
-    a layering boundary got crossed somewhere."""
-    assert "websockets" not in sys.modules
+import ast
+import inspect
+from tournament import tournament_manager
+
+def test_tournament_manager_module_does_not_import_network_libs():
+    source = inspect.getsource(tournament_manager)
+    tree = ast.parse(source)
+    imported_names = {
+        alias.name.split(".")[0]
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for alias in node.names
+    }
+    assert "websockets" not in imported_names
+    assert "asyncio" not in imported_names
 
 
 def test_create_room_returns_id_and_room_is_playable():

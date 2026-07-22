@@ -1,29 +1,17 @@
-"""
-Floor 2 of the architecture: the "tournament manager".
-
-Deliberately does NOT import asyncio / websockets / anything network
-related - it only knows about GameSession (Floor 1) and Room. This is
-what makes the offline test possible: you can create a room and play
-moves through this file with zero network stack running.
-
-sys.path wiring to Part A mirrors business_bridge.py in Part B (same
-technique, flagged in conversation as a spot to revisit/DRY-up later).
-"""
-
 import sys
 import os
-import uuid
 
 _CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-_PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "..", "Part A - business_logic")
+_PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "..", "Part A - business logic")
+
 if _PART_A_DIR not in sys.path:
     sys.path.insert(0, os.path.abspath(_PART_A_DIR))
 
-from api.game_api import GameSession   # noqa: E402
-from events.event_bus import EventBus  # noqa: E402
+from api.game_api import GameSession
+from events.event_bus import EventBus
 
-from tournament.room import Room  # noqa: E402
-
+import uuid
+from tournament.room import Room
 
 class UnknownRoomError(ValueError):
     pass
@@ -31,35 +19,37 @@ class UnknownRoomError(ValueError):
 
 class TournamentManager:
     def __init__(self):
-        self._rooms = {}  # room_id -> Room
+        self._rooms = {}
 
     def create_room(self, board_text, player_ids):
         room_id = str(uuid.uuid4())
         event_bus = EventBus()
-        session = GameSession.new_game(board_text, event_bus=event_bus)
+        session = GameSession(board_text, event_bus=event_bus)
         self._rooms[room_id] = Room(room_id, session, event_bus, player_ids)
         return room_id
 
-    def room_exists(self, room_id):
-        return room_id in self._rooms
+    def handle_move(self, room_id, player_id, x, y):
+        room = self._get_room(room_id)
+        room.handle_click(player_id, x, y)
+
+    def get_snapshot(self, room_id):
+        return self._get_room(room_id).get_snapshot()
+    
+    def create_waiting_room(self, board_text):
+        return self.create_room(board_text, player_ids={})
+    
+    def seat_player(self, room_id, color, player_id):
+        self._get_room(room_id).seat(color, player_id)
+
+    def is_room_full(self, room_id):
+        return self._get_room(room_id).is_full()
 
     def _get_room(self, room_id):
         room = self._rooms.get(room_id)
         if room is None:
-            raise UnknownRoomError(f"Unknown room: {room_id}")
+            raise UnknownRoomError(f"Unknowen room: {room_id}")
         return room
-
-    def handle_move(self, room_id, player_id, x, y):
-        self._get_room(room_id).handle_click(player_id, x, y)
-
-    def handle_jump(self, room_id, player_id, x, y):
-        self._get_room(room_id).handle_jump(player_id, x, y)
-
-    def tick(self, room_id, elapsed_ms):
-        self._get_room(room_id).tick(elapsed_ms)
-
-    def get_snapshot(self, room_id):
-        return self._get_room(room_id).get_snapshot()
-
-    def is_game_over(self, room_id):
-        return self._get_room(room_id).is_game_over()
+    
+    def room_exists(self, room_id):
+        return room_id in self._rooms
+    

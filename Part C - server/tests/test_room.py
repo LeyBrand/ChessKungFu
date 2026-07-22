@@ -7,6 +7,7 @@ import pytest
 from api.game_api import GameSession
 from events.event_bus import EventBus
 from tournament.room import Room, UnknownPlayerError
+from tournament.tournament_manager import TournamentManager
 from tests.conftest import STARTING_BOARD_TEXT
 
 
@@ -37,3 +38,14 @@ def test_unseated_player_is_rejected():
     room = make_room()
     with pytest.raises(UnknownPlayerError):
         room.handle_click("intruder", 100, 100)
+
+def test_seat_player_gradually_fills_room():
+    tm = TournamentManager()
+    room_id = tm.create_waiting_room(STARTING_BOARD_TEXT)
+    assert tm.is_room_full(room_id) is False
+
+    tm.seat_player(room_id, "white", "p1")
+    assert tm.is_room_full(room_id) is False
+
+    tm.seat_player(room_id, "black", "p2")
+    assert tm.is_room_full(room_id) is True
