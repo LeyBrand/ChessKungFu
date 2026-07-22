@@ -57,14 +57,13 @@ async def _handle_login(websocket):
     return username
 
 
-def _find_pending_reconnect(username):
-    for (room_id, color), pending_username in _disconnected_seats.items():
+def _find_pending_reconnect(username, disconnected_seats):
+    for (room_id, color), pending_username in disconnected_seats.items():
         if pending_username == username:
             return room_id, color
     return None
 
-
-async def _notify_opponent(room_id, color, message):
+async def _notify_opponent(room_id, color, message, tournament_manager, connection_manager):
     player_ids = tournament_manager.get_player_ids(room_id)
     opponent_color = "black" if color == "white" else "white"
     opponent_id = player_ids.get(opponent_color)
@@ -84,14 +83,14 @@ async def handler(websocket):
     connection_manager.register(player_id, websocket)
     connection_manager.set_username(player_id, username)
 
-    reconnect_seat = _find_pending_reconnect(username)
+    reconnect_seat = _find_pending_reconnect(username, _disconnected_seats)
     if reconnect_seat is not None:
         room_id, color = reconnect_seat
         disconnect_timer.cancel(room_id, color)
         del _disconnected_seats[(room_id, color)]
         tournament_manager.reseat(room_id, color, player_id)
         connection_manager.join_room(room_id, player_id)
-        await _notify_opponent(room_id, color, make_opponent_reconnected_message())
+        await _notify_opponent(room_id, color, make_opponent_reconnected_message(), tournament_manager, connection_manager)
 
     try:
         async for raw_message in websocket:
@@ -104,7 +103,7 @@ async def handler(websocket):
             if not tournament_manager.get_snapshot(room_id)["is_game_over"]:
                 disconnect_timer.start(room_id, color)
                 _disconnected_seats[(room_id, color)] = username
-                await _notify_opponent(room_id, color, make_opponent_disconnected_message(20))
+                await _notify_opponent(room_id, color, make_opponent_disconnected_message(20), tournament_manager, connection_manager)
 
         matchmaker.cancel(player_id)
         connection_manager.unregister(player_id)
