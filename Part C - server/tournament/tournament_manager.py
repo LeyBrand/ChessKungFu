@@ -39,6 +39,12 @@ class TournamentManager:
     def get_snapshot(self, room_id):
         return self._get_room(room_id).get_snapshot()
     
+    def get_event_bus(self, room_id):
+        return self._get_room(room_id).event_bus
+
+    def get_player_ids(self, room_id):
+        return dict(self._get_room(room_id).player_ids)
+
     def create_waiting_room(self, board_text):
         return self.create_room(board_text, player_ids={})
     

@@ -6,6 +6,7 @@ from network.broadcaster import broadcast_snapshot
 from tournament.tournament_manager import UnknownRoomError
 from tournament.room import UnknownPlayerError
 from constants import Color  # safe here: importing tournament_manager above already added repo root to sys.path
+from network.rating_updater import subscribe_rating_update
 
 STARTING_BOARD_TEXT = """
 bR bN bB bQ bK bB bN bR
@@ -64,6 +65,12 @@ async def _handle_play(player_id, tournament_manager, connection_manager, matchm
         return  # now waiting in the pool - MATCH_NOT_FOUND arrives later on timeout
 
     room_id = tournament_manager.create_room(STARTING_BOARD_TEXT, player_ids={})
+    subscribe_rating_update(
+        tournament_manager.get_event_bus(room_id),
+        lambda: tournament_manager.get_player_ids(room_id),
+        connection_manager,
+        player_store,
+    )
     tournament_manager.seat_player(room_id, Color.WHITE, opponent_id)
     tournament_manager.seat_player(room_id, Color.BLACK, player_id)
     connection_manager.join_room(room_id, opponent_id)
