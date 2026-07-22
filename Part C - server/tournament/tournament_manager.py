@@ -63,3 +63,5 @@ class TournamentManager:
     def room_exists(self, room_id):
         return room_id in self._rooms
     
+    def resign(self, room_id, color):
+        self._get_room(room_id).resign(color)

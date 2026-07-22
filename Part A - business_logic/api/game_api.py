@@ -39,3 +39,12 @@ class GameSession:
     def get_snapshot(self):
         engine_snapshot = self.engine.snapshot(selected_pos=self.controller.selected_pos)
         return build_board_snapshot(engine_snapshot)
+
+    def force_game_over(self, winner):
+        """External override - used e.g. for resignation after a
+        disconnect timeout. Reuses the normal GAME_OVER event so anything
+        subscribed (like rating updates) fires exactly as it would for a
+        king capture."""
+        self.state.game_over = True
+        if self.event_bus is not None:
+            self.event_bus.publish("GAME_OVER", winner=winner)

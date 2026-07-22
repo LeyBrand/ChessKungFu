@@ -32,3 +32,14 @@ class Room:
             if pid == player_id:
                 return color
         return None
+    
+    def reseat(self, color, new_player_id):
+        """Like seat(), but overwrites whoever's already there - used when
+        a disconnected player reconnects and needs their seat back."""
+        if color not in (Color.WHITE, Color.BLACK):
+            raise ValueError(f"Invalid color: {color}")
+        self.player_ids[color] = new_player_id
+
+    def resign(self, color):
+        winner = Color.BLACK if color == Color.WHITE else Color.WHITE
+        self._session.force_game_over(winner)
