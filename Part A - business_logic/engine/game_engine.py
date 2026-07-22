@@ -115,7 +115,7 @@ class GameEngine:
         if self.arbiter.advance_time(ms):
             self.state.game_over = True
             if self.event_bus is not None:
-                self.event_bus.publish("GAME_OVER")
+                self.event_bus.publish("GAME_OVER", winner=self.arbiter.last_game_over_winner)
         self._resolve_airborne()
 
     def _resolve_airborne(self):
@@ -151,7 +151,7 @@ class GameEngine:
                     if occupant.kind == "K":
                         self.state.game_over = True
                         if self.event_bus is not None:
-                            self.event_bus.publish("GAME_OVER")
+                            self.event_bus.publish("GAME_OVER", winner=piece.color)
             else:
                 still_airborne.append(entry)
 

@@ -12,6 +12,7 @@ class RealTimeArbiter:
         self.event_bus = event_bus
         self.game_clock_ms = 0
         self.active_motions = []
+        self.last_game_over_winner = None
 
     def now(self):
         return self.game_clock_ms
@@ -98,6 +99,7 @@ class RealTimeArbiter:
 
             if captured_piece and captured_piece.kind == "K":
                 king_captured = True
+                self.last_game_over_winner = motion.piece.color
 
         return king_captured
 
