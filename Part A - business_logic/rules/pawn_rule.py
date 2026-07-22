@@ -1,15 +1,14 @@
 from rules.piece_rules import PieceRules
 from model.position import Position
+from constants import Color
 
 
 class PawnRules(PieceRules):
     def legal_destinations(self, board, piece):
         moves = []
         curr_col, curr_row = piece.position.col, piece.position.row
-
-        direction = -1 if piece.color == "white" else 1
-
-        start_row = board.rows_length - 2 if piece.color == "white" else 1
+        direction = -1 if piece.color == Color.WHITE else 1
+        start_row = board.rows_length - 2 if piece.color == Color.WHITE else board.rows_length - 2 if piece.color == "white" else 1
 
         single_step_pos = Position(curr_col, curr_row + direction)
         single_step_clear = False

@@ -2,6 +2,7 @@ from constants import EMPTY_CELL, VALID_PIECES, WHITE
 from model.board import Board
 from model.piece import Piece
 from model.position import Position
+from constants import Color
 
 def parse_board(board_text):
     lines = [line.split() for line in board_text.strip().splitlines() if line.strip()]
@@ -23,7 +24,7 @@ def parse_board(board_text):
                 return None
             
             if token != EMPTY_CELL:
-                color = "white" if token.startswith(WHITE) else "black"
+                color = Color.WHITE if token.startswith(WHITE) else Color.BLACK
                 kind = token[1:]
                 piece = Piece(id=f"{token}_{c}_{r}", color=color, kind=kind, position=Position(c, r))
                 board.add_piece(piece, Position(c, r))

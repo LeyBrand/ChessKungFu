@@ -9,7 +9,7 @@ class MockPiece:
 
 @pytest.fixture
 def board():
-    return Board(rows=8, cols=8)
+    return Board(rows_length=8, cols_length=8)
 
 def test_position_equality():
     assert Position(1, 2) == Position(1, 2)

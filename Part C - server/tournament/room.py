@@ -1,5 +1,7 @@
+from constants import Color
+
 class UnknownPlayerError(ValueError):
-    pass
+    pass # missing implement
 
 class Room:
     def __init__(self, room_id, session, event_bus, player_ids=None):
@@ -9,15 +11,14 @@ class Room:
         self.player_ids = dict(player_ids or {})
 
     def seat(self, color, player_id):
-        if color not in("white", "black"):
+        if color not in (Color.WHITE, Color.BLACK):
             raise ValueError(f"Invalid color: {color}")
         if color in self.player_ids:
             raise ValueError(f"Color {color} already taken in room {self.room_id}")
         self.player_ids[color] = player_id
 
     def is_full(self):
-        return "white" in self.player_ids and "black" in self.player_ids
-    
+        return Color.WHITE in self.player_ids and Color.BLACK in self.player_ids
     def handle_click(self, player_id, x, y):
         if self.color_of(player_id) is None:
             raise UnknownPlayerError(f"{player_id} is not seated in room {self.room_id}")

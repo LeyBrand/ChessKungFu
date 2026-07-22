@@ -6,6 +6,10 @@ _PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "..", "Part A - business_logic")
 if _PART_A_DIR not in sys.path:
     sys.path.insert(0, os.path.abspath(_PART_A_DIR))
 
+_ROOT_DIR = os.path.join(_CURRENT_DIR, "..", "..")
+if os.path.abspath(_ROOT_DIR) not in sys.path:
+    sys.path.insert(0, os.path.abspath(_ROOT_DIR))
+    
 from api.game_api import GameSession  # noqa: E402  (import after sys.path setup)
 from events.event_bus import EventBus  # noqa: E402
 

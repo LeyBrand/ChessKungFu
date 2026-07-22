@@ -11,3 +11,9 @@ CELL_SIZE = 100
 
 WHITE = 'w'
 BLACK = 'b'
+
+from enum import Enum
+
+class Color(str, Enum):
+    WHITE = "white"
+    BLACK = "black"

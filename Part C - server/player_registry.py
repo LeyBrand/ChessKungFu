@@ -1,6 +1,7 @@
+from constants import Color
+
 class ServerFullError(Exception):
     pass
-
 
 class PlayerRegistry:
     MAX_PLAYERS = 2
@@ -16,7 +17,7 @@ class PlayerRegistry:
             raise ServerFullError(f"Server already has {self.MAX_PLAYERS} players")
 
         taken_colors = {player["color"] for player in self._players.values()}
-        color = "white" if "white" not in taken_colors else "black"
+        color = Color.WHITE if Color.WHITE not in taken_colors else Color.BLACK
         self._players[websocket] = {"username": username, "color": color}
         return color
 

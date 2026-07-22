@@ -7,6 +7,10 @@ _PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "..", "Part A - business logic")
 if _PART_A_DIR not in sys.path:
     sys.path.insert(0, os.path.abspath(_PART_A_DIR))
 
+_ROOT_DIR = os.path.join(_CURRENT_DIR, "..", "..")
+if os.path.abspath(_ROOT_DIR) not in sys.path:
+    sys.path.insert(0, os.path.abspath(_ROOT_DIR))
+
 from api.game_api import GameSession
 from events.event_bus import EventBus
 
@@ -24,7 +28,7 @@ class TournamentManager:
     def create_room(self, board_text, player_ids):
         room_id = str(uuid.uuid4())
         event_bus = EventBus()
-        session = GameSession(board_text, event_bus=event_bus)
+        session = GameSession.new_game(board_text, event_bus=event_bus)
         self._rooms[room_id] = Room(room_id, session, event_bus, player_ids)
         return room_id
 

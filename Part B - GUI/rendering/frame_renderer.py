@@ -2,6 +2,7 @@ from mapping.graphics_mapper import cell_to_pixel, piece_pixel
 from rendering.sprite_library import SpriteLibrary
 from scoring.score_tracker import ScoreTracker
 from scoring.move_log_tracker import MoveLogTracker
+from constants import Color
 
 SELECTED_OUTLINE = (51, 51, 255)
 GAME_OVER_COLOR = (0, 0, 255)
@@ -53,9 +54,9 @@ def render_frame(base_img, board_snapshot, cell_size):
     white_moves, black_moves = _split_history_by_color(_move_log_tracker.get_moves())
 
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
-                      title="Black", score=scores["black"], moves=black_moves)
+                      title="Black", score=scores[Color.BLACK], moves=black_moves)
     _draw_side_panel(frame, x_start=SIDEBAR_WIDTH + board_frame.width, panel_width=SIDEBAR_WIDTH,
-                      title="White", score=scores["white"], moves=white_moves)
+                      title="White", score=scores[Color.WHITE], moves=white_moves)
 
     return frame
 
@@ -93,8 +94,8 @@ def _draw_pieces(frame, pieces, cell_size, elapsed_seconds):
 
 
 def _split_history_by_color(move_history):
-    white_moves = [m for m in move_history if m.get("color") == "white"]
-    black_moves = [m for m in move_history if m.get("color") == "black"]
+    white_moves = [m for m in move_history if m.get("color") == Color.WHITE]
+    black_moves = [m for m in move_history if m.get("color") == Color.BLACK]
     return white_moves, black_moves
 
 

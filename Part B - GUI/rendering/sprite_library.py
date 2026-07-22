@@ -2,6 +2,7 @@ import os
 import json
 
 from data.img import Img
+from constants import Color
 
 DEFAULT_SPRITES_ROOT = os.path.join(os.path.dirname(__file__), "..", "data", "pieces_mine")
 
@@ -52,5 +53,5 @@ class SpriteLibrary:
 
     @staticmethod
     def _piece_code(kind, color):
-        color_char = "W" if color == "white" else "B"
+        color_char = "W" if color == Color.WHITE else "B"
         return f"{kind}{color_char}"

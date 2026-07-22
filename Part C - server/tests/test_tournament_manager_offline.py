@@ -38,10 +38,10 @@ def test_handle_move_updates_room_state():
     tm = TournamentManager()
     room_id = tm.create_room(STARTING_BOARD_TEXT, {"white": "p1", "black": "p2"})
 
-    tm.handle_move(room_id, "p1", 120, 340)
+    tm.handle_move(room_id, "p1", 0, 100)   # (0,100) -> col=0,row=1 -> bP
     snapshot = tm.get_snapshot(room_id)
 
-    assert snapshot["selected_cell"] == (1, 3)  # 120//100, 340//100
+    assert snapshot["selected_cell"] == (0, 1)  # 120//100, 340//100
 
 
 def test_unknown_room_raises():

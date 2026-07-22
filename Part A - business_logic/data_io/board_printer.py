@@ -1,4 +1,4 @@
-from constants import EMPTY_CELL, WHITE, BLACK
+from constants import EMPTY_CELL, Color
 from model.position import Position
 
 def print_board(board):
@@ -9,7 +9,7 @@ def print_board(board):
             if piece is None:
                 row_tokens.append(EMPTY_CELL)
             else:
-                color_char = WHITE if piece.color == 'white' else BLACK
+                color_char = WHITE if piece.color == Color.WHITE else BLACK
                 row_tokens.append(f"{color_char}{piece.kind}")
         
         print(" ".join(row_tokens))

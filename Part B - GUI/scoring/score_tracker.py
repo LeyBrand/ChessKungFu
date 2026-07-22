@@ -1,9 +1,10 @@
 from scoring.piece_values import value_of
+from constants import Color
 
 
 class ScoreTracker:
     def __init__(self, event_bus=None):
-        self.scores = {"white": 0, "black": 0}
+        self.scores = {Color.WHITE: 0, Color.BLACK: 0}
 
         if event_bus is not None:
             event_bus.subscribe("PIECE_CAPTURED", self._on_piece_captured)

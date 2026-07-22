@@ -30,9 +30,10 @@ def test_request_move_empty_source(engine, mock_state):
     assert result.reason == "empty_source"
 
 def test_request_move_success(engine, mock_state):
+    from rules.rule_engine import MoveValidation
     piece = Piece(id=1, color="white", kind="R", position=Position(0,0))
     mock_state.board.get_piece_at.return_value = piece
-    with unittest.mock.patch('rules.rule_engine.validate_move', return_value="ok"):
+    with unittest.mock.patch('rules.rule_engine.validate_move', return_value=MoveValidation(True, "ok")):
         result = engine.request_move(Position(0,0), Position(0,5))
         assert result.is_accepted is True
         assert result.reason == "ok"
