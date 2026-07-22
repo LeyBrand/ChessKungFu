@@ -5,19 +5,21 @@ import uuid
 import websockets
 
 from tournament.tournament_manager import TournamentManager
+from tournament.matchmaker import Matchmaker
 from network.connection_manager import ConnectionManager
 from network.message_router import handle_message
+from network.protocol import make_match_not_found_message
 from data.player_store import PlayerStore, InvalidCredentialsError, UsernameTakenError
+
+TIMEOUT_CHECK_INTERVAL_SEC = 1
 
 tournament_manager = TournamentManager()
 connection_manager = ConnectionManager()
 player_store = PlayerStore()
+matchmaker = Matchmaker()
 
 
 async def _handle_login(websocket):
-    """Waits for the client's first message, expects {"type": "LOGIN", ...}.
-    Returns the logged-in username, or None if login failed (caller should
-    already have closed the socket by the time this returns None)."""
     try:
         raw = await websocket.recv()
         data = json.loads(raw)
@@ -57,14 +59,27 @@ async def handler(websocket):
     connection_manager.set_username(player_id, username)
     try:
         async for raw_message in websocket:
-            await handle_message(raw_message, player_id, tournament_manager, connection_manager, websocket)
+            await handle_message(raw_message, player_id, tournament_manager, connection_manager, websocket,
+                                  matchmaker, player_store)
     finally:
+        matchmaker.cancel(player_id)
         connection_manager.unregister(player_id)
+
+
+async def _matchmaking_timeout_loop():
+    while True:
+        await asyncio.sleep(TIMEOUT_CHECK_INTERVAL_SEC)
+        timed_out = matchmaker.check_timeouts()
+        for player_id in timed_out:
+            ws = connection_manager.get_websocket(player_id)
+            if ws is not None:
+                await ws.send(make_match_not_found_message())
 
 
 async def main():
     async with websockets.serve(handler, "localhost", 8765):
         print("Server listening on ws://localhost:8765")
+        asyncio.create_task(_matchmaking_timeout_loop())
         await asyncio.Future()
 
 
