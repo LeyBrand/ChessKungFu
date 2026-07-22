@@ -32,3 +32,10 @@ def make_match_found_message(room_id: str, color: str) -> str:
 
 def make_match_not_found_message() -> str:
     return json.dumps({"type": "MATCH_NOT_FOUND"})
+
+def make_opponent_disconnected_message(seconds_remaining) -> str:
+    return json.dumps({"type": "OPPONENT_DISCONNECTED", "seconds_remaining": seconds_remaining})
+
+
+def make_opponent_reconnected_message() -> str:
+    return json.dumps({"type": "OPPONENT_RECONNECTED"})

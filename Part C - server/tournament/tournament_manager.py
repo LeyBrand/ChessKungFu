@@ -63,5 +63,18 @@ class TournamentManager:
     def room_exists(self, room_id):
         return room_id in self._rooms
     
+    def reseat(self, room_id, color, new_player_id):
+        self._get_room(room_id).reseat(color, new_player_id)
+
     def resign(self, room_id, color):
         self._get_room(room_id).resign(color)
+
+    def find_seat(self, player_id):
+        """Returns (room_id, color) if this player is currently seated in
+        an active room, else None. Used on disconnect to know what to
+        start a timer for."""
+        for room_id, room in self._rooms.items():
+            color = room.color_of(player_id)
+            if color is not None:
+                return room_id, color
+        return None
