@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from constants import MessageType
+
 WINDOW_NAME = "Chess Game"
 CANVAS_SIZE = (300, 700)
 
@@ -34,7 +36,7 @@ class RoomScreen:
 
             if self.stage == STAGE_CHOOSE:
                 if key in (ord('c'), ord('C')):
-                    self.bridge.send({"type": "CREATE_ROOM"})
+                    self.bridge.send({"type": MessageType.CREATE_ROOM})
                     self.stage = STAGE_WAITING
                 elif key in (ord('j'), ord('J')):
                     self.stage = STAGE_TYPE_ID
@@ -42,7 +44,7 @@ class RoomScreen:
             elif self.stage == STAGE_TYPE_ID:
                 if key == 13:  # Enter
                     if self.room_id_input:
-                        self.bridge.send({"type": "JOIN_ROOM", "room_id": self.room_id_input})
+                        self.bridge.send({"type": MessageType.JOIN_ROOM, "room_id": self.room_id_input})
                         self.stage = STAGE_WAITING
                 elif key == 8:  # Backspace
                     self.room_id_input = self.room_id_input[:-1]
@@ -51,13 +53,13 @@ class RoomScreen:
 
             elif self.stage == STAGE_WAITING:
                 for msg in self.bridge.poll():
-                    if msg["type"] == "ROOM_CREATED":
+                    if msg["type"] == MessageType.ROOM_CREATED:
                         self.created_room_id = msg["room_id"]
                         self.stage = STAGE_SHOW_ID
-                    elif msg["type"] == "ROOM_JOINED":
+                    elif msg["type"] == MessageType.ROOM_JOINED:
                         cv2.destroyWindow(WINDOW_NAME)
                         return msg["room_id"], msg["color"]
-                    elif msg["type"] == "ERROR":
+                    elif msg["type"] == MessageType.ERROR:
                         self.error_message = msg["reason"]
                         self.stage = STAGE_ERROR
                     else:

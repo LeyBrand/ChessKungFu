@@ -17,7 +17,7 @@ from screens.home_screen import HomeScreen
 from screens.waiting_screen import WaitingScreen
 from screens.mode_select_screen import ModeSelectScreen
 from screens.room_screen import RoomScreen
-from constants import CELL_SIZE
+from constants import CELL_SIZE, MessageType
 
 
 def main():
@@ -57,12 +57,12 @@ def main():
     def handle_click(x, y):
         board_x = x - SIDEBAR_WIDTH
         if 0 <= board_x < board_width_px:
-            bridge.send({"type": "MOVE", "room_id": room_id, "x": board_x, "y": y})
+            bridge.send({"type": MessageType.MOVE, "room_id": room_id, "x": board_x, "y": y})
         
     def handle_jump(x, y):
         board_x = x - SIDEBAR_WIDTH
         if 0 <= board_x < board_width_px and 0 <= y < board_width_px:
-            bridge.send({"type": "JUMP", "room_id": room_id, "x": board_x, "y": y})
+            bridge.send({"type": MessageType.JUMP, "room_id": room_id, "x": board_x, "y": y})
 
     mouse_observer = MouseObserver()
     mouse_observer.subscribe(handle_click, "left")
@@ -79,7 +79,7 @@ def main():
 
         for msg in bridge.poll():
             print(f"[main] got message: {msg['type']}")
-            if msg["type"] == "SNAPSHOT":
+            if msg["type"] == MessageType.SNAPSHOT:
                 latest_snapshot = msg["data"]
 
         if latest_snapshot is not None:

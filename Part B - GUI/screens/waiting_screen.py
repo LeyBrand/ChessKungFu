@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from constants import MessageType
+
 WINDOW_NAME = "Chess Game"
 CANVAS_SIZE = (300, 700)
 
@@ -11,7 +13,7 @@ class WaitingScreen:
 
     def run(self):
         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_GUI_NORMAL)
-        self.bridge.send({"type": "PLAY"})
+        self.bridge.send({"type": MessageType.PLAY})
 
         message = "Searching for an opponent..."
         while True:
@@ -22,15 +24,15 @@ class WaitingScreen:
 
             key = cv2.waitKey(30)
             if key == 27:
-                self.bridge.send({"type": "CANCEL_SEEK"})
+                self.bridge.send({"type": MessageType.CANCEL_SEEK})
                 cv2.destroyWindow(WINDOW_NAME)
                 return None
 
             for msg in self.bridge.poll():
-                if msg["type"] == "MATCH_FOUND":
+                if msg["type"] == MessageType.MATCH_FOUND:
                     cv2.destroyWindow(WINDOW_NAME)
                     return msg["room_id"], msg["color"]
-                elif msg["type"] == "MATCH_NOT_FOUND":
+                elif msg["type"] == MessageType.MATCH_NOT_FOUND:
                     message = "No opponent found. Press Esc to give up, or wait..."
                 else:
                     self.bridge.incoming.put(msg)

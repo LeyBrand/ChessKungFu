@@ -3,6 +3,8 @@ import queue
 import cv2
 import numpy as np
 
+from constants import MessageType
+
 WINDOW_NAME = "Chess Game"
 CANVAS_SIZE = (400, 700)
 
@@ -41,10 +43,10 @@ class HomeScreen:
                 self._handle_text_input(key, field="password")
             elif self.stage == STAGE_CONNECTING:
                 for msg in self.bridge.poll():
-                    if msg["type"] == "LOGIN_OK":
+                    if msg["type"] == MessageType.LOGIN_OK:
                         cv2.destroyWindow(WINDOW_NAME)
                         return msg["username"]
-                    elif msg["type"] == "LOGIN_ERROR":
+                    elif msg["type"] == MessageType.LOGIN_ERROR:
                         self.error_message = msg["reason"]
                         self.stage = STAGE_ERROR
             elif self.stage == STAGE_ERROR:
@@ -62,7 +64,7 @@ class HomeScreen:
                 self.stage = FIELD_PASSWORD
             elif field == "password" and self.password:
                 self.stage = STAGE_CONNECTING
-                self.bridge.send({"type": "LOGIN", "username": self.username, "password": self.password})
+                self.bridge.send({"type": MessageType.LOGIN, "username": self.username, "password": self.password})
             return
         if key == 8:  # Backspace
             if field == "username":
