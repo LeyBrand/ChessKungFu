@@ -1,10 +1,12 @@
 import json
 from dataclasses import dataclass, asdict
 
+from constants import MessageType
+
 @dataclass
 class SnapshotMessage:
     data: dict
-    type: str = "SNAPSHOT"
+    type: MessageType = MessageType.SNAPSHOT
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
@@ -13,14 +15,14 @@ class SnapshotMessage:
 class MatchFoundMessage:
     room_id: str
     color: str
-    type: str = "MATCH_FOUND"
+    type: MessageType = MessageType.MATCH_FOUND
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
     
 @dataclass
 class MatchNotFoundMessage:
-    type: str = "MATCH_NOT_FOUND"
+    type: MessageType = MessageType.MATCH_NOT_FOUND
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
@@ -28,7 +30,7 @@ class MatchNotFoundMessage:
 @dataclass
 class ErrorMessage:
     reason: str
-    type: str = "ERROR"
+    type: MessageType = MessageType.ERROR
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
@@ -36,21 +38,22 @@ class ErrorMessage:
 @dataclass
 class OpponentDisconnectedMessage:
     seconds_remaining: int
-    type: str = "OPPONENT_DISCONNECTED"
+    type: MessageType = MessageType.OPPONENT_DISCONNECTED
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
 
 @dataclass
 class OpponentReconnectedMessage:
-    type: str = "OPPONENT_RECONNECTED"
+    type: MessageType = MessageType.OPPONENT_RECONNECTED
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
     
-
-VALID_INCOMING_TYPES = {"JOIN_ROOM", "MOVE", "JUMP", "PLAY", "CANCEL_SEEK"}
-
+VALID_INCOMING_TYPES = {
+    MessageType.JOIN_ROOM, MessageType.MOVE, MessageType.JUMP,
+    MessageType.PLAY, MessageType.CANCEL_SEEK,
+}
 
 def parse_incoming(raw: str) -> dict:
     data = json.loads(raw)

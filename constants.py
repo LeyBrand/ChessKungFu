@@ -17,3 +17,20 @@ from enum import Enum
 class Color(str, Enum):
     WHITE = "white"
     BLACK = "black"
+
+class MessageType(str, Enum):
+    JOIN_ROOM = "JOIN_ROOM"
+    MOVE = "MOVE"
+    JUMP = "JUMP"
+    PLAY = "PLAY"
+    CANCEL_SEEK = "CANCEL_SEEK"
+    LOGIN = "LOGIN"
+
+    SNAPSHOT = "SNAPSHOT"
+    ERROR = "ERROR"
+    MATCH_FOUND = "MATCH_FOUND"
+    MATCH_NOT_FOUND = "MATCH_NOT_FOUND"
+    OPPONENT_DISCONNECTED = "OPPONENT_DISCONNECTED"
+    OPPONENT_RECONNECTED = "OPPONENT_RECONNECTED"
+    LOGIN_OK = "LOGIN_OK"
+    LOGIN_ERROR = "LOGIN_ERROR"
