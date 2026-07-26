@@ -37,9 +37,6 @@ class NetworkBridge:
                 break
         return messages
 
-    def _run(self):
-        asyncio.run(self._main())
-
     async def _main(self):
         async with websockets.connect(SERVER_URL) as ws:
             await asyncio.gather(self._reader(ws), self._writer(ws))

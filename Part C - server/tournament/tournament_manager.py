@@ -86,3 +86,6 @@ class TournamentManager:
     def tick_all(self, elapsed_ms):
         for room in self._rooms.values():
             room.tick(elapsed_ms)
+
+    def all_room_ids(self):
+        return list(self._rooms.keys())

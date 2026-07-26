@@ -145,7 +145,7 @@ async def _game_tick_loop():
     while True:
         await asyncio.sleep(interval_sec)
         tournament_manager.tick_all(interval_sec * 1000)
-        for room_id in list(tournament_manager._rooms.keys()):
+        for room_id in tournament_manager.all_room_ids():
             snapshot = tournament_manager.get_snapshot(room_id)
             await broadcast_snapshot(room_id, snapshot, connection_manager)
 
