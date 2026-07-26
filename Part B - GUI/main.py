@@ -6,6 +6,12 @@ _ROOT_DIR = os.path.join(_CURRENT_DIR, "..")
 if os.path.abspath(_ROOT_DIR) not in sys.path:
     sys.path.insert(0, os.path.abspath(_ROOT_DIR))
 
+# >>> חדש: גישה ל-Part A כדי לייבא את BoardSnapshot המשותף
+_PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "Part A - business_logic")
+if os.path.abspath(_PART_A_DIR) not in sys.path:
+    sys.path.insert(0, os.path.abspath(_PART_A_DIR))
+# <<< עד כאן החדש
+
 import time
 
 from data.img import Img
@@ -17,7 +23,8 @@ from screens.home_screen import HomeScreen
 from screens.waiting_screen import WaitingScreen
 from screens.mode_select_screen import ModeSelectScreen
 from screens.room_screen import RoomScreen
-from constants import CELL_SIZE, MessageType
+from constants import MessageType, CELL_SIZE
+from view.game_snapshot import BoardSnapshot   # >>> חדש
 
 
 def main():
@@ -34,7 +41,7 @@ def main():
     print(f"[main] mode select screen done, mode={mode}")
     if mode is None:
         return
-    
+
     if mode == "play":
         match = WaitingScreen(bridge).run()
     elif mode == "room":
@@ -54,33 +61,36 @@ def main():
     board_width_px = base_img.width
 
     latest_snapshot = None
+
     def handle_click(x, y):
         board_x = x - SIDEBAR_WIDTH
         if 0 <= board_x < board_width_px:
             bridge.send({"type": MessageType.MOVE, "room_id": room_id, "x": board_x, "y": y})
-        
+
     def handle_jump(x, y):
         board_x = x - SIDEBAR_WIDTH
-        if 0 <= board_x < board_width_px and 0 <= y < board_width_px:
+        if 0 <= board_x < board_width_px:
             bridge.send({"type": MessageType.JUMP, "room_id": room_id, "x": board_x, "y": y})
 
     mouse_observer = MouseObserver()
     mouse_observer.subscribe(handle_click, "left")
     mouse_observer.subscribe(handle_jump, "right")
-
-    display.setup_mouse_callback(on_left_click=lambda x, y: mouse_observer.notify(x, y, "left"), on_right_click=lambda x, y: mouse_observer.notify(x, y, "right"))
+    display.setup_mouse_callback(
+        on_left_click=lambda x, y: mouse_observer.notify(x, y, "left"),
+        on_right_click=lambda x, y: mouse_observer.notify(x, y, "right"),
+    )
 
     print("[main] entering game loop")
     loop_count = 0
     while True:
         loop_count += 1
-        if loop_count % 60 == 0:  # once every ~2 seconds
+        if loop_count % 60 == 0:
             print(f"[main] loop alive, snapshot_received={latest_snapshot is not None}")
 
         for msg in bridge.poll():
             print(f"[main] got message: {msg['type']}")
             if msg["type"] == MessageType.SNAPSHOT:
-                latest_snapshot = msg["data"]
+                latest_snapshot = BoardSnapshot.from_dict(msg["data"])   # >>> שונה
 
         if latest_snapshot is not None:
             frame = render_frame(base_img, latest_snapshot, cell_size=CELL_SIZE)

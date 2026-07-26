@@ -41,17 +41,17 @@ def init_move_log(event_bus):
 
 def render_frame(base_img, board_snapshot, cell_size):
     board_frame = base_img.copy()
-    elapsed_seconds = board_snapshot["timestamp_ms"] / 1000.0
+    elapsed_seconds = board_snapshot.timestamp_ms / 1000.0
 
-    _draw_selection(board_frame, board_snapshot["selected_cell"], cell_size)
-    _draw_pieces(board_frame, board_snapshot["pieces"], cell_size, elapsed_seconds)
+    _draw_selection(board_frame, board_snapshot.selected_cell, cell_size)
+    _draw_pieces(board_frame, board_snapshot.pieces, cell_size, elapsed_seconds)
 
-    if board_snapshot["is_game_over"]:
+    if board_snapshot.is_game_over:
         board_frame.put_text("GAME OVER", cell_size * 2, cell_size * 4, 1.2, GAME_OVER_COLOR, 3)
     frame = board_frame.with_side_panels(SIDEBAR_WIDTH, SIDEBAR_WIDTH, PANEL_BG_COLOR)
 
     scores = _score_tracker.get_scores()
-    white_moves, black_moves = _split_history_by_color(board_snapshot["move_history"])
+    white_moves, black_moves = _split_history_by_color(board_snapshot.move_history)
 
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
                       title="Black", score=scores[Color.BLACK], moves=black_moves)
@@ -74,20 +74,20 @@ def _draw_pieces(frame, pieces, cell_size, elapsed_seconds):
     offset = (cell_size - sprite_size) // 2
 
     for piece in pieces:
-        if piece.get("state") == "captured":
+        if piece.state == "captured":
             continue
 
-        x, y = piece_pixel(piece["position"], piece["motion"], cell_size)
+        x, y = piece_pixel(piece.position, piece.motion, cell_size)
 
-        if piece["state"] == "jumping":
+        if piece.state == "jumping":
             state = "jump"
-        elif piece["motion"] is not None:
+        elif piece.motion is not None:
             state = "move"
         else:
             state = "idle"
 
         sprite = _sprite_library.get_frame(
-            piece["kind"], piece["color"], state, elapsed_seconds,
+            piece.kind, piece.color, state, elapsed_seconds,
             size=(sprite_size, sprite_size),
         )
         sprite.draw_on(frame, int(x) + offset, int(y) + offset)
