@@ -12,6 +12,9 @@ CELL_SIZE = 100
 WHITE = 'w'
 BLACK = 'b'
 
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8765
+
 from enum import Enum
 
 class Color(str, Enum):

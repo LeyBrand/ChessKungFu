@@ -12,7 +12,7 @@ from network.message_router import handle_message
 from network.broadcaster import broadcast_snapshot
 from network.protocol import MatchNotFoundMessage, OpponentDisconnectedMessage, OpponentReconnectedMessage, LoginOkMessage, LoginErrorMessage
 from data.player_store import PlayerStore, InvalidCredentialsError, UsernameTakenError
-from constants import MessageType, Color
+from constants import MessageType, Color, SERVER_HOST, SERVER_PORT
 
 TIMEOUT_CHECK_INTERVAL_SEC = 1
 
@@ -133,8 +133,8 @@ async def _disconnect_timeout_loop():
 
 
 async def main():
-    async with websockets.serve(handler, "127.0.0.1", 8765):
-        print("Server listening on ws://localhost:8765")
+    async with websockets.serve(handler, SERVER_HOST, SERVER_PORT):
+        print(f"Server listening on ws://{SERVER_HOST}:{SERVER_PORT}")
         asyncio.create_task(_matchmaking_timeout_loop())
         asyncio.create_task(_disconnect_timeout_loop())
         asyncio.create_task(_game_tick_loop())

@@ -17,6 +17,7 @@ from screens.home_screen import HomeScreen
 from screens.waiting_screen import WaitingScreen
 from screens.mode_select_screen import ModeSelectScreen
 from screens.room_screen import RoomScreen
+from constants import CELL_SIZE
 
 
 def main():
@@ -82,7 +83,7 @@ def main():
                 latest_snapshot = msg["data"]
 
         if latest_snapshot is not None:
-            frame = render_frame(base_img, latest_snapshot, cell_size=100)
+            frame = render_frame(base_img, latest_snapshot, cell_size=CELL_SIZE)
             display.update_frame(frame)
             display.render()
 

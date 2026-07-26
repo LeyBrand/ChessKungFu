@@ -2,10 +2,11 @@ import asyncio
 import json
 import queue
 import threading
-
 import websockets
 
-SERVER_URL = "ws://127.0.0.1:8765"
+from constants import SERVER_HOST, SERVER_PORT
+
+SERVER_URL = f"ws://{SERVER_HOST}:{SERVER_PORT}"
 
 
 class NetworkBridge:

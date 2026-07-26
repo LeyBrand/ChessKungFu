@@ -1,4 +1,4 @@
-DEFAULT_CELL_SIZE = 100
+from constants import CELL_SIZE as DEFAULT_CELL_SIZE
 
 
 def cell_to_pixel(col, row, cell_size=DEFAULT_CELL_SIZE):
