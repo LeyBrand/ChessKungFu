@@ -88,7 +88,6 @@ class Img:
 
     def set_mouse_callback(self, window_name: str, on_left_click=None, on_right_click=None) -> None:
         def _cv2_callback(event, x, y, flags, param):
-            print(f"DEBUG raw cv2 event: {event}, x={x}, y={y}")  # זמני לדיבוג
             if event == cv2.EVENT_LBUTTONDOWN and on_left_click is not None:
                 on_left_click(x, y)
             elif event == cv2.EVENT_RBUTTONDOWN and on_right_click is not None:

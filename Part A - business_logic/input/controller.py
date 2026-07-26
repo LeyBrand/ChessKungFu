@@ -59,7 +59,6 @@ class Controller:
         source = self.selected_pos
         destination = position
         result = self.engine.request_move(source, destination)
-        print(f"MOVE {source} -> {destination}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 
         self.selected_pos = None
         self.selected_by = None
@@ -73,7 +72,6 @@ class Controller:
         if color is not None and color != self.selected_by:
             return
         result = self.engine.jump(self.selected_pos)
-        print(f"JUMP {self.selected_pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 
         self.selected_pos = None
         self.selected_by = None

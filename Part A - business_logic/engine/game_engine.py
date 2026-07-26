@@ -107,7 +107,6 @@ class GameEngine:
             "land_time": land_time,
             "move_entry": move_entry,
         })
-        print(f"JUMP TAKEOFF piece={piece.id} at {pos}, now={now}ms, will land at {land_time}ms")  # זמני לדיבוג
 
         return MoveResult(True, "ok")
 
@@ -133,9 +132,6 @@ class GameEngine:
 
                 if entry.get("move_entry") is not None:
                     entry["move_entry"]["captured"] = occupant is not None
-
-                print(f"JUMP LANDING piece={piece.id} back at {origin}, now={now}ms"
-                      + (f", captured occupant={occupant.id}" if occupant is not None else ""))  # זמני לדיבוג
 
                 if occupant is not None:
                     if self.event_bus is not None:
