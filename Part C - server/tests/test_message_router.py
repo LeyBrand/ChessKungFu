@@ -37,13 +37,14 @@ async def test_join_then_move_broadcasts_snapshot_to_both_players():
     move_msg = json.dumps({"type": "MOVE", "room_id": room_id, "x": 100, "y": 600})
     await handle_message(move_msg, "p1", tm, cm, ws1)
 
-    assert len(ws1.sent) == 1
-    assert len(ws2.sent) == 1
-    payload = json.loads(ws1.sent[0])
-    assert payload["type"] == "SNAPSHOT"
-    assert payload["data"]["selected_cell"] == [1, 6]  # JSON round-trip: tuple -> list
-
-
+    # ההודעה האחרונה שכל צד קיבל צריכה להיות ה-SNAPSHOT שהמהלך גרם לו
+    last1 = json.loads(ws1.sent[-1])
+    last2 = json.loads(ws2.sent[-1])
+    assert last1["type"] == "SNAPSHOT"
+    assert last2["type"] == "SNAPSHOT"
+    assert last1["data"]["selected_cell"] == [1, 6]
+    assert last2["data"]["selected_cell"] == [1, 6]
+    
 @pytest.mark.asyncio
 async def test_move_in_unknown_room_sends_error_not_exception():
     tm = TournamentManager()

@@ -66,10 +66,27 @@ class LoginOkMessage:
 
     def to_json(self) -> str:
         return json.dumps(asdict(self))
+
+@dataclass
+class RoomCreatedMessage:
+    room_id: str
+    type: MessageType = MessageType.ROOM_CREATED
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+
+@dataclass
+class RoomJoinedMessage:
+    room_id: str
+    color: str | None
+    type: MessageType = MessageType.ROOM_JOINED
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
     
 VALID_INCOMING_TYPES = {
     MessageType.JOIN_ROOM, MessageType.MOVE, MessageType.JUMP,
-    MessageType.PLAY, MessageType.CANCEL_SEEK,
+    MessageType.PLAY, MessageType.CANCEL_SEEK, MessageType.CREATE_ROOM,
 }
 
 def parse_incoming(raw: str) -> dict:

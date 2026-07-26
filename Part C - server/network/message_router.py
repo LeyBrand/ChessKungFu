@@ -1,4 +1,7 @@
-from network.protocol import parse_incoming, ErrorMessage, MatchFoundMessage, MatchNotFoundMessage
+from network.protocol import (
+    parse_incoming, ErrorMessage, MatchFoundMessage, MatchNotFoundMessage,
+    RoomCreatedMessage, RoomJoinedMessage,
+)
 from network.broadcaster import broadcast_snapshot
 from tournament.tournament_manager import UnknownRoomError
 from tournament.room import UnknownPlayerError
@@ -15,11 +18,6 @@ bP bP bP bP bP bP bP bP
 wP wP wP wP wP wP wP wP
 wR wN wB wQ wK wB wN wR
 """
-
-
-async def _handle_join_room(data, player_id, tournament_manager, connection_manager, websocket, matchmaker, player_store):
-    connection_manager.join_room(data["room_id"], player_id)
-
 
 async def _handle_move(data, player_id, tournament_manager, connection_manager, websocket, matchmaker, player_store):
     tournament_manager.handle_move(data["room_id"], player_id, data["x"], data["y"])
@@ -72,14 +70,29 @@ async def _handle_play(data, player_id, tournament_manager, connection_manager, 
         await this_ws.send(MatchFoundMessage(room_id, Color.BLACK).to_json())
 
 
-_HANDLERS = {
-    MessageType.JOIN_ROOM: _handle_join_room,
-    MessageType.MOVE: _handle_move,
-    MessageType.JUMP: _handle_jump,
-    MessageType.PLAY: _handle_play,
-    MessageType.CANCEL_SEEK: _handle_cancel_seek,
-}
+async def _handle_create_room(data, player_id, tournament_manager, connection_manager, websocket, matchmaker, player_store):
+    room_id = tournament_manager.create_room(STARTING_BOARD_TEXT, player_ids={})
+    tournament_manager.seat_player(room_id, Color.WHITE, player_id)
+    connection_manager.join_room(room_id, player_id)
+    await websocket.send(RoomCreatedMessage(room_id=room_id).to_json())
 
+async def _handle_join_room(data, player_id, tournament_manager, connection_manager, websocket, matchmaker, player_store):
+    room_id = data["room_id"]
+    if not tournament_manager.room_exists(room_id):
+        await websocket.send(ErrorMessage(reason=f"Unknown room: {room_id}").to_json())
+        return
+
+    color = None
+    seated = tournament_manager.get_player_ids(room_id)
+    if Color.BLACK not in seated:
+        tournament_manager.seat_player(room_id, Color.BLACK, player_id)
+        color = Color.BLACK
+
+    connection_manager.join_room(room_id, player_id)
+    await websocket.send(RoomJoinedMessage(room_id=room_id, color=color).to_json())
+
+    snapshot = tournament_manager.get_snapshot(room_id)
+    await broadcast_snapshot(room_id, snapshot, connection_manager)
 
 async def handle_message(raw_message, player_id, tournament_manager, connection_manager, websocket,
                           matchmaker=None, player_store=None):
@@ -97,3 +110,12 @@ async def handle_message(raw_message, player_id, tournament_manager, connection_
         await handler(data, player_id, tournament_manager, connection_manager, websocket, matchmaker, player_store)
     except (UnknownRoomError, UnknownPlayerError, KeyError) as e:
         await websocket.send(ErrorMessage(reason=str(e)).to_json())
+
+_HANDLERS = {
+    MessageType.JOIN_ROOM: _handle_join_room,
+    MessageType.CREATE_ROOM: _handle_create_room,
+    MessageType.MOVE: _handle_move,
+    MessageType.JUMP: _handle_jump,
+    MessageType.PLAY: _handle_play,
+    MessageType.CANCEL_SEEK: _handle_cancel_seek,
+}
