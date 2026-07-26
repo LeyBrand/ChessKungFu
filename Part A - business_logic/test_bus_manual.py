@@ -1,5 +1,6 @@
 from events.event_bus import EventBus
 from api.game_api import GameSession
+from constants import Color
 
 STARTING_BOARD_TEXT = """
 bR bN bB bQ bK bB bN bR
@@ -18,6 +19,6 @@ bus.subscribe("MOVE_MADE", lambda **move: print("MOVE_MADE event received:", mov
 session = GameSession.new_game(STARTING_BOARD_TEXT, event_bus=bus)
 
 # קליק ראשון = בחירת כלי (חייל לבן בעמודה 0, שורה 6 - פינה שמאלית תחתונה)
-session.handle_click(0 * 100, 6 * 100)
+session.handle_click(0 * 100, 6 * 100, Color.WHITE)
 # קליק שני = יעד - צעד אחד קדימה
-session.handle_click(0 * 100, 5 * 100)
+session.handle_click(0 * 100, 5 * 100, Color.WHITE)

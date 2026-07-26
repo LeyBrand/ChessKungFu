@@ -8,6 +8,7 @@ from view.renderer import build_board_snapshot
 class GameSession:
     def __init__(self, board, event_bus = None):
         self.state = GameState(board)
+        self.event_bus = event_bus
         self.engine = GameEngine(self.state, event_bus = event_bus)
         self.controller = Controller(self.engine)
 

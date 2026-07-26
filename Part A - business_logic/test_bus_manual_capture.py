@@ -1,5 +1,6 @@
 from events.event_bus import EventBus
 from api.game_api import GameSession
+from constants import Color
 
 # לוח מותאם אישית ופשוט, לא לוח פתיחה רגיל: רק שני כלים,
 # חייל שחור ב-(0,5) וצריח לבן ב-(0,6) - מהלך אחד ישר קדימה = לכידה.
@@ -21,9 +22,9 @@ bus.subscribe("PIECE_CAPTURED", lambda **info: print("PIECE_CAPTURED event recei
 session = GameSession.new_game(CAPTURE_BOARD_TEXT, event_bus=bus)
 
 # קליק ראשון = בחירת הצריח הלבן ב-(0,6)
-session.handle_click(0 * 100, 6 * 100)
+session.handle_click(0 * 100, 6 * 100, Color.WHITE)
 # קליק שני = יעד - (0,5), איפה שעומד החייל השחור
-session.handle_click(0 * 100, 5 * 100)
+session.handle_click(0 * 100, 5 * 100, Color.WHITE)
 
 print("--- לפני tick: המהלך אושר אבל עדיין 'בדרך', לא נחת עדיין ---")
 

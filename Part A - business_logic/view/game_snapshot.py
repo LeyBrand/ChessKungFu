@@ -1,10 +1,11 @@
+from dataclasses import dataclass, field
+
+@dataclass
 class GameSnapshot:
-    def __init__(self, board_width, board_height, pieces, selected_cell, game_over, timestamp,
-                 move_history=None):
-        self.board_width = board_width
-        self.board_height = board_height
-        self.pieces = pieces
-        self.selected_cell = selected_cell
-        self.game_over = game_over
-        self.timestamp = timestamp
-        self.move_history = move_history or []
+    board_width: int
+    board_height: int
+    pieces: list
+    selected_cell: tuple | None
+    game_over: bool
+    timestamp: int
+    move_history: list = field(default_factory=list)

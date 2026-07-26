@@ -6,6 +6,7 @@ GameSession runs on a real (small, custom) board.
 
 from events.event_bus import EventBus
 from api.game_api import GameSession
+from constants import Color
 
 
 # חייל שחור ב-(0,5), צריח לבן ב-(0,6). מהלך אחד ישר קדימה = לכידה.
@@ -27,8 +28,8 @@ def test_move_made_event_fires_on_accepted_move():
     bus.subscribe("MOVE_MADE", lambda **move: received.append(move))
 
     session = GameSession.new_game(CAPTURE_BOARD_TEXT, event_bus=bus)
-    session.handle_click(0 * 100, 6 * 100)  # select the white rook
-    session.handle_click(0 * 100, 5 * 100)  # move it forward
+    session.handle_click(0 * 100, 6 * 100, Color.WHITE)  # select the white rook
+    session.handle_click(0 * 100, 5 * 100, Color.WHITE)  # move it forward
 
     assert len(received) == 1
     assert received[0]["from"] == (0, 6)
@@ -42,8 +43,8 @@ def test_piece_captured_event_fires_only_after_motion_completes():
     bus.subscribe("PIECE_CAPTURED", lambda **info: captured_events.append(info))
 
     session = GameSession.new_game(CAPTURE_BOARD_TEXT, event_bus=bus)
-    session.handle_click(0 * 100, 6 * 100)
-    session.handle_click(0 * 100, 5 * 100)
+    session.handle_click(0 * 100, 6 * 100, Color.WHITE)
+    session.handle_click(0 * 100, 5 * 100, Color.WHITE)
 
     # move accepted, but motion hasn't landed yet - no capture yet
     assert captured_events == []
@@ -85,8 +86,8 @@ def test_game_over_event_fires_when_king_is_captured():
     bus.subscribe("GAME_OVER", lambda **kwargs: game_over_events.append(kwargs))
 
     session = GameSession.new_game(GAME_OVER_BOARD_TEXT, event_bus=bus)
-    session.handle_click(0 * 100, 6 * 100)  # select the white rook
-    session.handle_click(0 * 100, 5 * 100)  # move it onto the black king
+    session.handle_click(0 * 100, 6 * 100, Color.WHITE)  # select the white rook
+    session.handle_click(0 * 100, 5 * 100, Color.WHITE)  # move it onto the black king
 
     # move accepted, but motion hasn't landed yet - no GAME_OVER yet
     assert game_over_events == []
