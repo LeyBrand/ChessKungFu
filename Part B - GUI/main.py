@@ -15,6 +15,8 @@ from rendering.frame_renderer import render_frame, SIDEBAR_WIDTH, init_scoring, 
 from network.network_bridge import NetworkBridge
 from screens.home_screen import HomeScreen
 from screens.waiting_screen import WaitingScreen
+from screens.mode_select_screen import ModeSelectScreen
+from screens.room_screen import RoomScreen
 
 
 def main():
@@ -27,8 +29,17 @@ def main():
     if username is None:
         return
 
-    match = WaitingScreen(bridge).run()
-    print(f"[main] waiting screen done, match={match}")
+    mode = ModeSelectScreen().run()
+    print(f"[main] mode select screen done, mode={mode}")
+    if mode is None:
+        return
+    
+    if mode == "play":
+        match = WaitingScreen(bridge).run()
+    elif mode == "room":
+        match = RoomScreen(bridge).run()
+
+    print(f"[main] match screen done, match={match}")
     if match is None:
         return
     room_id, my_color = match

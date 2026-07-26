@@ -36,3 +36,7 @@ class ConnectionManager:
 
     def get_username(self, player_id):
         return self._usernames.get(player_id)
+
+    def leave_all_rooms(self, player_id):
+        for players in self._room_players.values():
+            players.discard(player_id)

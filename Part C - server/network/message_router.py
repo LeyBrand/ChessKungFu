@@ -56,7 +56,9 @@ async def _handle_play(data, player_id, tournament_manager, connection_manager, 
     )
     tournament_manager.seat_player(room_id, Color.WHITE, opponent_id)
     tournament_manager.seat_player(room_id, Color.BLACK, player_id)
+    connection_manager.leave_all_rooms(opponent_id)
     connection_manager.join_room(room_id, opponent_id)
+    connection_manager.leave_all_rooms(player_id)
     connection_manager.join_room(room_id, player_id)
     snapshot = tournament_manager.get_snapshot(room_id)
     await broadcast_snapshot(room_id, snapshot, connection_manager)
@@ -73,6 +75,7 @@ async def _handle_play(data, player_id, tournament_manager, connection_manager, 
 async def _handle_create_room(data, player_id, tournament_manager, connection_manager, websocket, matchmaker, player_store):
     room_id = tournament_manager.create_room(STARTING_BOARD_TEXT, player_ids={})
     tournament_manager.seat_player(room_id, Color.WHITE, player_id)
+    connection_manager.leave_all_rooms(player_id)
     connection_manager.join_room(room_id, player_id)
     await websocket.send(RoomCreatedMessage(room_id=room_id).to_json())
 
@@ -88,6 +91,7 @@ async def _handle_join_room(data, player_id, tournament_manager, connection_mana
         tournament_manager.seat_player(room_id, Color.BLACK, player_id)
         color = Color.BLACK
 
+    connection_manager.leave_all_rooms(player_id)
     connection_manager.join_room(room_id, player_id)
     await websocket.send(RoomJoinedMessage(room_id=room_id, color=color).to_json())
 
