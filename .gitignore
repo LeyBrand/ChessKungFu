@@ -4,6 +4,3 @@ __pycache__/
 *.pyc
 htmlcov/
 .coverage
-__init__.py
-conftest.py
-data/
