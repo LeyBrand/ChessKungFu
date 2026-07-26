@@ -10,8 +10,9 @@ from tournament.disconnect_timer import DisconnectTimer
 from network.connection_manager import ConnectionManager
 from network.message_router import handle_message
 from network.broadcaster import broadcast_snapshot
-from network.protocol import MatchNotFoundMessage, OpponentDisconnectedMessage, OpponentReconnectedMessage
+from network.protocol import MatchNotFoundMessage, OpponentDisconnectedMessage, OpponentReconnectedMessage, LoginOkMessage, LoginErrorMessage
 from data.player_store import PlayerStore, InvalidCredentialsError, UsernameTakenError
+from constants import MessageType, Color
 
 TIMEOUT_CHECK_INTERVAL_SEC = 1
 
@@ -20,7 +21,7 @@ connection_manager = ConnectionManager()
 player_store = PlayerStore()
 matchmaker = Matchmaker()
 disconnect_timer = DisconnectTimer()
-_disconnected_seats = {}  # (room_id, color) -> username, only while a timer is pending
+_disconnected_seats = {}
 
 
 async def _handle_login(websocket):
@@ -30,8 +31,8 @@ async def _handle_login(websocket):
     except (websockets.exceptions.ConnectionClosed, json.JSONDecodeError):
         return None
 
-    if data.get("type") != "LOGIN":
-        await websocket.send(json.dumps({"type": "LOGIN_ERROR", "reason": "expected LOGIN as first message"}))
+    if data.get("type") != MessageType.LOGIN:
+        await websocket.send(LoginErrorMessage(reason="expected LOGIN as first message").to_json())
         await websocket.close()
         return None
 
@@ -44,12 +45,12 @@ async def _handle_login(websocket):
         else:
             player_store.create_player(username, password)
     except (InvalidCredentialsError, UsernameTakenError) as exc:
-        await websocket.send(json.dumps({"type": "LOGIN_ERROR", "reason": str(exc)}))
+        await websocket.send(LoginErrorMessage(reason=str(exc)).to_json())
         await websocket.close()
         return None
 
     rating = player_store.get_rating(username)
-    await websocket.send(json.dumps({"type": "LOGIN_OK", "username": username, "rating": rating}))
+    await websocket.send(LoginOkMessage(username=username, rating=rating).to_json())
     return username
 
 
@@ -61,7 +62,7 @@ def _find_pending_reconnect(username, disconnected_seats):
 
 async def _notify_opponent(room_id, color, message, tournament_manager, connection_manager):
     player_ids = tournament_manager.get_player_ids(room_id)
-    opponent_color = "black" if color == "white" else "white"
+    opponent_color = Color.BLACK if color == Color.WHITE else Color.WHITE
     opponent_id = player_ids.get(opponent_color)
     if opponent_id is None:
         return

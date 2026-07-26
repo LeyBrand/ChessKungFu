@@ -50,6 +50,23 @@ class OpponentReconnectedMessage:
     def to_json(self) -> str:
         return json.dumps(asdict(self))
     
+@dataclass
+class LoginErrorMessage:
+    reason: str
+    type: MessageType = MessageType.LOGIN_ERROR
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
+@dataclass
+class LoginOkMessage:
+    username: str
+    rating: int
+    type: MessageType = MessageType.LOGIN_OK
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
 VALID_INCOMING_TYPES = {
     MessageType.JOIN_ROOM, MessageType.MOVE, MessageType.JUMP,
     MessageType.PLAY, MessageType.CANCEL_SEEK,
