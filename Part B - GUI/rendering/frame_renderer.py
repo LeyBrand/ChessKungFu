@@ -50,7 +50,7 @@ def render_frame(base_img, board_snapshot, cell_size):
         board_frame.put_text("GAME OVER", cell_size * 2, cell_size * 4, 1.2, GAME_OVER_COLOR, 3)
     frame = board_frame.with_side_panels(SIDEBAR_WIDTH, SIDEBAR_WIDTH, PANEL_BG_COLOR)
 
-    scores = _score_tracker.get_scores()
+    scores = board_snapshot.scores
     white_moves, black_moves = _split_history_by_color(board_snapshot.move_history)
 
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
