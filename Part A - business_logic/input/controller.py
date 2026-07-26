@@ -7,6 +7,7 @@ class Controller:
     def __init__(self, engine):
         self.engine = engine
         self.selected_pos = None
+        self.selected_by = None
         self.actions = {
             "click": self._handle_click,
             "wait": self._handle_wait,
@@ -17,16 +18,17 @@ class Controller:
     def handle(self, command, board):
         name = command["name"]
         args = command.get("args", [])
+        color = command.get("color")
 
         if name in self.actions:
-            self.actions[name](args, board)
+            self.actions[name](args, board, color)
 
-    def _handle_click(self, args, board):
+    def _handle_click(self, args, board, color):
         x, y = int(args[0]), int(args[1])
         col, row = pixel_to_cell(x, y)
-        self.click(Position(col, row), board)
+        self.click(Position(col, row), board, color)
 
-    def click(self, position, board):
+    def click(self, position, board, color):
         in_bounds = board.in_bounds(position)
 
         if self.selected_pos is None:
@@ -34,10 +36,14 @@ class Controller:
                 return
 
             piece = board.get_piece_at(position)
-            if piece is None:
+            if piece is None or piece.color != color:
                 return
 
             self.selected_pos = position
+            self.selected_by = color
+            return
+        
+        if color != self.selected_by:
             return
 
         if not in_bounds:
@@ -56,26 +62,26 @@ class Controller:
         print(f"MOVE {source} -> {destination}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 
         self.selected_pos = None
+        self.selected_by = None
         
-    def _handle_jump(self, args, board):
-        # x, y (args) לא בשימוש יותר - הכלי שקופץ הוא זה שכבר נבחר
-        # (בדיוק כמו שהקליק השני לא "מזהה מחדש" את הכלי הנבחר).
-        self.jump(board)
+    def _handle_jump(self, args, board, color):
+        self.jump(board, color)
 
-    def jump(self, board):
+    def jump(self, board, color):
         """
         Launches whichever piece is currently selected - the jump
         counterpart of click()'s second-click branch. Requires a prior
         click() to have selected a piece; otherwise it's a no-op.
         """
-        if self.selected_pos is None:
+        if self.selected_pos is None or color != self.selected_by:
             return
 
         result = self.engine.jump(self.selected_pos)
         print(f"JUMP {self.selected_pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 
         self.selected_pos = None
+        self.selected_by = None
 
-    def _handle_wait(self, args, board):
+    def _handle_wait(self, args, board, color):
         ms = int(args[0])
         self.engine.wait(ms)

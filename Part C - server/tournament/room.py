@@ -19,11 +19,19 @@ class Room:
 
     def is_full(self):
         return Color.WHITE in self.player_ids and Color.BLACK in self.player_ids
-    def handle_click(self, player_id, x, y):
-        if self.color_of(player_id) is None:
-            raise UnknownPlayerError(f"{player_id} is not seated in room {self.room_id}")
-        self._session.handle_click(x, y)
     
+    def handle_click(self, player_id, x, y):
+        color = self.color_of(player_id)
+        if color is None:
+            raise UnknownPlayerError(f"{player_id} is not seated in room {self.room_id}")
+        self._session.handle_click(x, y, color)
+    
+    def handle_jump(self, player_id, x, y):
+        color = self.color_of(player_id)
+        if color is None:
+            raise UnknownPlayerError(f"{player_id} is not seated in room {self.room_id}")
+        self._session.handle_jump(x, y, color)
+
     def get_snapshot(self):
         return self._session.get_snapshot()
     
@@ -43,3 +51,6 @@ class Room:
     def resign(self, color):
         winner = Color.BLACK if color == Color.WHITE else Color.WHITE
         self._session.force_game_over(winner)
+    
+    def tick(self, elapsed_ms):
+        self._session.tick(elapsed_ms)

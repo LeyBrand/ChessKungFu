@@ -75,38 +75,43 @@ async def _notify_opponent(room_id, color, message, tournament_manager, connecti
 
 
 async def handler(websocket):
-    username = await _handle_login(websocket)
-    if username is None:
-        return
-
-    player_id = str(uuid.uuid4())
-    connection_manager.register(player_id, websocket)
-    connection_manager.set_username(player_id, username)
-
-    reconnect_seat = _find_pending_reconnect(username, _disconnected_seats)
-    if reconnect_seat is not None:
-        room_id, color = reconnect_seat
-        disconnect_timer.cancel(room_id, color)
-        del _disconnected_seats[(room_id, color)]
-        tournament_manager.reseat(room_id, color, player_id)
-        connection_manager.join_room(room_id, player_id)
-        await _notify_opponent(room_id, color, make_opponent_reconnected_message(), tournament_manager, connection_manager)
-
     try:
-        async for raw_message in websocket:
-            await handle_message(raw_message, player_id, tournament_manager, connection_manager, websocket,
-                                  matchmaker, player_store)
-    finally:
-        seat = tournament_manager.find_seat(player_id)
-        if seat is not None:
-            room_id, color = seat
-            if not tournament_manager.get_snapshot(room_id)["is_game_over"]:
-                disconnect_timer.start(room_id, color)
-                _disconnected_seats[(room_id, color)] = username
-                await _notify_opponent(room_id, color, make_opponent_disconnected_message(20), tournament_manager, connection_manager)
+        username = await _handle_login(websocket)
+        if username is None:
+            return
 
-        matchmaker.cancel(player_id)
-        connection_manager.unregister(player_id)
+        player_id = str(uuid.uuid4())
+        connection_manager.register(player_id, websocket)
+        connection_manager.set_username(player_id, username)
+
+        reconnect_seat = _find_pending_reconnect(username, _disconnected_seats)
+        if reconnect_seat is not None:
+            room_id, color = reconnect_seat
+            disconnect_timer.cancel(room_id, color)
+            del _disconnected_seats[(room_id, color)]
+            tournament_manager.reseat(room_id, color, player_id)
+            connection_manager.join_room(room_id, player_id)
+            await _notify_opponent(room_id, color, make_opponent_reconnected_message(), tournament_manager, connection_manager)
+
+        try:
+            async for raw_message in websocket:
+                await handle_message(raw_message, player_id, tournament_manager, connection_manager, websocket,
+                                      matchmaker, player_store)
+        finally:
+            seat = tournament_manager.find_seat(player_id)
+            if seat is not None:
+                room_id, color = seat
+                if not tournament_manager.get_snapshot(room_id)["is_game_over"]:
+                    disconnect_timer.start(room_id, color)
+                    _disconnected_seats[(room_id, color)] = username
+                    await _notify_opponent(room_id, color, make_opponent_disconnected_message(20), tournament_manager, connection_manager)
+
+            matchmaker.cancel(player_id)
+            connection_manager.unregister(player_id)
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 async def _matchmaking_timeout_loop():
@@ -131,12 +136,24 @@ async def _disconnect_timeout_loop():
 
 
 async def main():
-    async with websockets.serve(handler, "localhost", 8765):
+    async with websockets.serve(handler, "127.0.0.1", 8765):
         print("Server listening on ws://localhost:8765")
         asyncio.create_task(_matchmaking_timeout_loop())
         asyncio.create_task(_disconnect_timeout_loop())
+        asyncio.create_task(_game_tick_loop())
         await asyncio.Future()
+
+async def _game_tick_loop():
+    interval_sec = 0.05
+    while True:
+        await asyncio.sleep(interval_sec)
+        tournament_manager.tick_all(interval_sec * 1000)
+        for room_id in list(tournament_manager._rooms.keys()):
+            snapshot = tournament_manager.get_snapshot(room_id)
+            await broadcast_snapshot(room_id, snapshot, connection_manager)
 
 
 if __name__ == "__main__":
+    if hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

@@ -36,6 +36,10 @@ class TournamentManager:
         room = self._get_room(room_id)
         room.handle_click(player_id, x, y)
 
+    def handle_jump(self, room_id, player_id, x, y):
+        room = self._get_room(room_id)
+        room.handle_jump(player_id, x, y)
+
     def get_snapshot(self, room_id):
         return self._get_room(room_id).get_snapshot()
     
@@ -78,3 +82,7 @@ class TournamentManager:
             if color is not None:
                 return room_id, color
         return None
+    
+    def tick_all(self, elapsed_ms):
+        for room in self._rooms.values():
+            room.tick(elapsed_ms)

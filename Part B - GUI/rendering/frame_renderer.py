@@ -51,7 +51,7 @@ def render_frame(base_img, board_snapshot, cell_size):
     frame = board_frame.with_side_panels(SIDEBAR_WIDTH, SIDEBAR_WIDTH, PANEL_BG_COLOR)
 
     scores = _score_tracker.get_scores()
-    white_moves, black_moves = _split_history_by_color(_move_log_tracker.get_moves())
+    white_moves, black_moves = _split_history_by_color(board_snapshot["move_history"])
 
     _draw_side_panel(frame, x_start=0, panel_width=SIDEBAR_WIDTH,
                       title="Black", score=scores[Color.BLACK], moves=black_moves)

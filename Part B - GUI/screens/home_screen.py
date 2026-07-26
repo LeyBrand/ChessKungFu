@@ -3,10 +3,8 @@ import queue
 import cv2
 import numpy as np
 
-from network.login_client import login_async
-
 WINDOW_NAME = "Chess Game"
-CANVAS_SIZE = (400, 700)  # height, width
+CANVAS_SIZE = (400, 700)
 
 FIELD_USERNAME = "username"
 FIELD_PASSWORD = "password"
@@ -15,15 +13,16 @@ STAGE_ERROR = "error"
 
 
 class HomeScreen:
-    """Blocking OpenCV login screen. Returns the logged-in username on
-    success, or None if the user closed the window / gave up."""
+    """Blocking OpenCV login screen. Sends LOGIN over the given
+    NetworkBridge (already started by the caller) and returns the
+    logged-in username on success, or None if the window was closed."""
 
-    def __init__(self):
+    def __init__(self, bridge):
+        self.bridge = bridge
         self.username = ""
         self.password = ""
         self.stage = FIELD_USERNAME
         self.error_message = None
-        self.result_queue = queue.Queue()
 
     def run(self):
         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_GUI_NORMAL)
@@ -41,18 +40,15 @@ class HomeScreen:
             elif self.stage == FIELD_PASSWORD:
                 self._handle_text_input(key, field="password")
             elif self.stage == STAGE_CONNECTING:
-                try:
-                    result = self.result_queue.get_nowait()
-                except queue.Empty:
-                    continue
-                if result["ok"]:
-                    cv2.destroyWindow(WINDOW_NAME)
-                    return result["username"]
-                else:
-                    self.error_message = result["reason"]
-                    self.stage = STAGE_ERROR
+                for msg in self.bridge.poll():
+                    if msg["type"] == "LOGIN_OK":
+                        cv2.destroyWindow(WINDOW_NAME)
+                        return msg["username"]
+                    elif msg["type"] == "LOGIN_ERROR":
+                        self.error_message = msg["reason"]
+                        self.stage = STAGE_ERROR
             elif self.stage == STAGE_ERROR:
-                if key == 13:  # Enter - try again
+                if key == 13:
                     self.username = ""
                     self.password = ""
                     self.error_message = None
@@ -66,7 +62,7 @@ class HomeScreen:
                 self.stage = FIELD_PASSWORD
             elif field == "password" and self.password:
                 self.stage = STAGE_CONNECTING
-                login_async(self.username, self.password, self.result_queue)
+                self.bridge.send({"type": "LOGIN", "username": self.username, "password": self.password})
             return
         if key == 8:  # Backspace
             if field == "username":
@@ -74,7 +70,7 @@ class HomeScreen:
             else:
                 self.password = self.password[:-1]
             return
-        if 32 <= key <= 126:  # printable ASCII
+        if 32 <= key <= 126:
             char = chr(key)
             if field == "username":
                 self.username += char
@@ -83,13 +79,10 @@ class HomeScreen:
 
     def _draw(self):
         canvas = np.full((*CANVAS_SIZE, 3), 245, dtype=np.uint8)
-
         cv2.putText(canvas, "KungFu Chess - Login", (30, 60),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (40, 40, 40), 2)
-
         cv2.putText(canvas, f"Username: {self.username}", (30, 150),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 1)
-
         masked = "*" * len(self.password)
         cv2.putText(canvas, f"Password: {masked}", (30, 200),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 1)

@@ -75,6 +75,8 @@ async def _handle_play(player_id, tournament_manager, connection_manager, matchm
     tournament_manager.seat_player(room_id, Color.BLACK, player_id)
     connection_manager.join_room(room_id, opponent_id)
     connection_manager.join_room(room_id, player_id)
+    snapshot = tournament_manager.get_snapshot(room_id)
+    await broadcast_snapshot(room_id, snapshot, connection_manager)
 
     opponent_ws = connection_manager.get_websocket(opponent_id)
     this_ws = connection_manager.get_websocket(player_id)
@@ -83,3 +85,6 @@ async def _handle_play(player_id, tournament_manager, connection_manager, matchm
         await opponent_ws.send(make_match_found_message(room_id, Color.WHITE))
     if this_ws is not None:
         await this_ws.send(make_match_found_message(room_id, Color.BLACK))
+
+    snapshot = tournament_manager.get_snapshot(room_id)
+    await broadcast_snapshot(room_id, snapshot, connection_manager)

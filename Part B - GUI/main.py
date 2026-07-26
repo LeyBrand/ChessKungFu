@@ -1,71 +1,84 @@
+import sys
+import os
+
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT_DIR = os.path.join(_CURRENT_DIR, "..")
+if os.path.abspath(_ROOT_DIR) not in sys.path:
+    sys.path.insert(0, os.path.abspath(_ROOT_DIR))
+
 import time
 
 from data.img import Img
-from bridge.business_bridge import BusinessBridge
 from controls.input_handler import MouseObserver
 from window.display_manager import DisplayManager
 from rendering.frame_renderer import render_frame, SIDEBAR_WIDTH, init_scoring, init_move_log
+from network.network_bridge import NetworkBridge
 from screens.home_screen import HomeScreen
-
-STARTING_BOARD_TEXT = """
-bR bN bB bQ bK bB bN bR
-bP bP bP bP bP bP bP bP
-.  .  .  .  .  .  .  .
-.  .  .  .  .  .  .  .
-.  .  .  .  .  .  .  .
-.  .  .  .  .  .  .  .
-wP wP wP wP wP wP wP wP
-wR wN wB wQ wK wB wN wR
-"""
+from screens.waiting_screen import WaitingScreen
 
 
 def main():
-    username = HomeScreen().run()
-    if username is None:
-        return  # user closed the login window
+    bridge = NetworkBridge()
+    bridge.start()
+    print("[main] bridge started")
 
+    username = HomeScreen(bridge).run()
+    print(f"[main] home screen done, username={username}")
+    if username is None:
+        return
+
+    match = WaitingScreen(bridge).run()
+    print(f"[main] waiting screen done, match={match}")
+    if match is None:
+        return
+    room_id, my_color = match
+
+    print("[main] creating DisplayManager...")
     display = DisplayManager(window_name="Chess Game")
+    print("[main] DisplayManager created")
+
     base_img = Img().read("data/board.png")
+    print("[main] board image loaded")
     board_width_px = base_img.width
 
-    bridge = BusinessBridge(STARTING_BOARD_TEXT)
-    init_scoring(bridge.event_bus)
-    init_move_log(bridge.event_bus)
-
+    latest_snapshot = None
     def handle_click(x, y):
         board_x = x - SIDEBAR_WIDTH
         if 0 <= board_x < board_width_px:
-            bridge.handle_click(board_x, y)
-
+            bridge.send({"type": "MOVE", "room_id": room_id, "x": board_x, "y": y})
+        
     def handle_jump(x, y):
         board_x = x - SIDEBAR_WIDTH
-        if 0 <= board_x < board_width_px:
-            bridge.handle_jump(board_x, y)
+        if 0 <= board_x < board_width_px and 0 <= y < board_width_px:
+            bridge.send({"type": "JUMP", "room_id": room_id, "x": board_x, "y": y})
 
     mouse_observer = MouseObserver()
     mouse_observer.subscribe(handle_click, "left")
     mouse_observer.subscribe(handle_jump, "right")
-    display.setup_mouse_callback(
-        on_left_click=lambda x, y: mouse_observer.notify(x, y, "left"),
-        on_right_click=lambda x, y: mouse_observer.notify(x, y, "right"),
-    )
 
-    last_time = time.time()
+    display.setup_mouse_callback(on_left_click=lambda x, y: mouse_observer.notify(x, y, "left"), on_right_click=lambda x, y: mouse_observer.notify(x, y, "right"))
 
+    print("[main] entering game loop")
+    loop_count = 0
     while True:
-        now = time.time()
-        elapsed_ms = (now - last_time) * 1000
-        last_time = now
+        loop_count += 1
+        if loop_count % 60 == 0:  # once every ~2 seconds
+            print(f"[main] loop alive, snapshot_received={latest_snapshot is not None}")
 
-        bridge.tick(elapsed_ms)
+        for msg in bridge.poll():
+            print(f"[main] got message: {msg['type']}")
+            if msg["type"] == "SNAPSHOT":
+                latest_snapshot = msg["data"]
 
-        board_snapshot = bridge.get_render_snapshot()
-        frame = render_frame(base_img, board_snapshot, cell_size=100)
-        display.update_frame(frame)
-        display.render()
+        if latest_snapshot is not None:
+            frame = render_frame(base_img, latest_snapshot, cell_size=100)
+            display.update_frame(frame)
+            display.render()
 
         if display.should_close():
             break
+
+        time.sleep(0.03)
 
     display.close()
 
