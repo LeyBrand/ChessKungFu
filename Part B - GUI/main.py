@@ -6,11 +6,9 @@ _ROOT_DIR = os.path.join(_CURRENT_DIR, "..")
 if os.path.abspath(_ROOT_DIR) not in sys.path:
     sys.path.insert(0, os.path.abspath(_ROOT_DIR))
 
-# >>> חדש: גישה ל-Part A כדי לייבא את BoardSnapshot המשותף
 _PART_A_DIR = os.path.join(_CURRENT_DIR, "..", "Part A - business_logic")
 if os.path.abspath(_PART_A_DIR) not in sys.path:
     sys.path.insert(0, os.path.abspath(_PART_A_DIR))
-# <<< עד כאן החדש
 
 import time
 
@@ -24,7 +22,7 @@ from screens.waiting_screen import WaitingScreen
 from screens.mode_select_screen import ModeSelectScreen
 from screens.room_screen import RoomScreen
 from constants import MessageType, CELL_SIZE
-from view.game_snapshot import BoardSnapshot   # >>> חדש
+from view.game_snapshot import BoardSnapshot
 
 
 def main():
@@ -90,7 +88,7 @@ def main():
         for msg in bridge.poll():
             print(f"[main] got message: {msg['type']}")
             if msg["type"] == MessageType.SNAPSHOT:
-                latest_snapshot = BoardSnapshot.from_dict(msg["data"])   # >>> שונה
+                latest_snapshot = BoardSnapshot.from_dict(msg["data"])
 
         if latest_snapshot is not None:
             frame = render_frame(base_img, latest_snapshot, cell_size=CELL_SIZE)

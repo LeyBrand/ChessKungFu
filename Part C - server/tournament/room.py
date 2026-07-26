@@ -1,7 +1,7 @@
 from constants import Color, value_of
 
 class UnknownPlayerError(ValueError):
-    pass # missing implement
+    pass
 
 class Room:
     def __init__(self, room_id, session, event_bus, player_ids=None):
