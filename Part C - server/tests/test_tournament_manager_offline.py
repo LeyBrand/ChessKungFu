@@ -38,10 +38,10 @@ def test_handle_move_updates_room_state():
     tm = TournamentManager()
     room_id = tm.create_room(STARTING_BOARD_TEXT, {"white": "p1", "black": "p2"})
 
-    tm.handle_move(room_id, "p1", 0, 100)   # (0,100) -> col=0,row=1 -> bP
+    tm.handle_move(room_id, "p1", 0, 600)   # (0,100) -> col=0,row=1 -> bP
     snapshot = tm.get_snapshot(room_id)
 
-    assert snapshot["selected_cell"] == (0, 1)  # 120//100, 340//100
+    assert snapshot["selected_cell"] == (0, 6)  # 120//100, 340//100
 
 
 def test_unknown_room_raises():
@@ -56,7 +56,7 @@ def test_two_rooms_are_fully_independent():
     room_a = tm.create_room(STARTING_BOARD_TEXT, {"white": "p1", "black": "p2"})
     room_b = tm.create_room(STARTING_BOARD_TEXT, {"white": "p3", "black": "p4"})
 
-    tm.handle_move(room_a, "p1", 100, 100)
+    tm.handle_move(room_a, "p1", 100, 600)
 
-    assert tm.get_snapshot(room_a)["selected_cell"] == (1, 1)
+    assert tm.get_snapshot(room_a)["selected_cell"] == (1, 6)
     assert tm.get_snapshot(room_b)["selected_cell"] is None

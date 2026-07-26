@@ -23,10 +23,10 @@ class GameSession:
         return cls(board, event_bus = event_bus)
 
     # ---- input -----------------------------------------------------
-    def handle_click(self, x, y, color):
+    def handle_click(self, x, y, color=None):
         self.controller.handle({"name": "click", "args": [str(x), str(y)], "color": color}, self.state.board)
 
-    def handle_jump(self, x, y, color):
+    def handle_jump(self, x, y, color=None):
         self.controller.handle({"name": "jump", "args": [str(x), str(y)], "color": color}, self.state.board)
 
     # ---- time --------------------------------------------------------

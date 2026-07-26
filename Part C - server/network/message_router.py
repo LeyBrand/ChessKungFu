@@ -1,11 +1,8 @@
-from network.protocol import (
-    parse_incoming, make_error_message,
-    make_match_found_message, make_match_not_found_message,
-)
+from network.protocol import parse_incoming, ErrorMessage, MatchFoundMessage, MatchNotFoundMessage
 from network.broadcaster import broadcast_snapshot
 from tournament.tournament_manager import UnknownRoomError
 from tournament.room import UnknownPlayerError
-from constants import Color  # safe here: importing tournament_manager above already added repo root to sys.path
+from constants import Color
 from network.rating_updater import subscribe_rating_update
 
 STARTING_BOARD_TEXT = """
@@ -25,7 +22,7 @@ async def handle_message(raw_message, player_id, tournament_manager, connection_
     try:
         data = parse_incoming(raw_message)
     except ValueError as e:
-        await websocket.send(make_error_message(str(e)))
+        await websocket.send(ErrorMessage(reason=str(e)).to_json())
         return
 
     try:
@@ -50,19 +47,18 @@ async def handle_message(raw_message, player_id, tournament_manager, connection_
                 matchmaker.cancel(player_id)
 
     except (UnknownRoomError, UnknownPlayerError, KeyError) as e:
-        await websocket.send(make_error_message(str(e)))
+        await websocket.send(ErrorMessage(reason=str(e)).to_json())
 
 
 async def _handle_play(player_id, tournament_manager, connection_manager, matchmaker, player_store):
     if matchmaker is None or player_store is None:
-        return  # not wired up (e.g. an old test calling handle_message directly) - no-op
-
+        return
     username = connection_manager.get_username(player_id)
     rating = player_store.get_rating(username)
 
     opponent_id = matchmaker.seek(player_id, username, rating)
     if opponent_id is None:
-        return  # now waiting in the pool - MATCH_NOT_FOUND arrives later on timeout
+        return
 
     room_id = tournament_manager.create_room(STARTING_BOARD_TEXT, player_ids={})
     subscribe_rating_update(
@@ -82,9 +78,6 @@ async def _handle_play(player_id, tournament_manager, connection_manager, matchm
     this_ws = connection_manager.get_websocket(player_id)
 
     if opponent_ws is not None:
-        await opponent_ws.send(make_match_found_message(room_id, Color.WHITE))
+        await opponent_ws.send(MatchFoundMessage(room_id, Color.WHITE).to_json())
     if this_ws is not None:
-        await this_ws.send(make_match_found_message(room_id, Color.BLACK))
-
-    snapshot = tournament_manager.get_snapshot(room_id)
-    await broadcast_snapshot(room_id, snapshot, connection_manager)
+        await this_ws.send(MatchFoundMessage(room_id, Color.BLACK).to_json())

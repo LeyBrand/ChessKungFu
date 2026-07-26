@@ -34,14 +34,14 @@ async def test_join_then_move_broadcasts_snapshot_to_both_players():
     await handle_message(json.dumps({"type": "JOIN_ROOM", "room_id": room_id}), "p1", tm, cm, ws1)
     await handle_message(json.dumps({"type": "JOIN_ROOM", "room_id": room_id}), "p2", tm, cm, ws2)
 
-    move_msg = json.dumps({"type": "MOVE", "room_id": room_id, "x": 100, "y": 100})
+    move_msg = json.dumps({"type": "MOVE", "room_id": room_id, "x": 100, "y": 600})
     await handle_message(move_msg, "p1", tm, cm, ws1)
 
     assert len(ws1.sent) == 1
     assert len(ws2.sent) == 1
     payload = json.loads(ws1.sent[0])
     assert payload["type"] == "SNAPSHOT"
-    assert payload["data"]["selected_cell"] == [1, 1]  # JSON round-trip: tuple -> list
+    assert payload["data"]["selected_cell"] == [1, 6]  # JSON round-trip: tuple -> list
 
 
 @pytest.mark.asyncio
@@ -106,14 +106,15 @@ async def test_play_matches_two_players_and_sends_match_found_to_both():
 
     await handle_message(json.dumps({"type": "PLAY"}), "p2", tm, cm, ws2, matchmaker, player_store)
 
-    assert len(ws1.sent) == 1
-    assert len(ws2.sent) == 1
-    payload1 = json.loads(ws1.sent[0])
-    payload2 = json.loads(ws2.sent[0])
-    assert payload1["type"] == "MATCH_FOUND"
-    assert payload2["type"] == "MATCH_FOUND"
-    assert payload1["room_id"] == payload2["room_id"]
-    assert {payload1["color"], payload2["color"]} == {"white", "black"}
+    assert len(ws1.sent) == 2
+    assert len(ws2.sent) == 2
+    types1 = {json.loads(m)["type"] for m in ws1.sent}
+    assert types1 == {"SNAPSHOT", "MATCH_FOUND"}
+
+    match_found1 = next(json.loads(m) for m in ws1.sent if json.loads(m)["type"] == "MATCH_FOUND")
+    match_found2 = next(json.loads(m) for m in ws2.sent if json.loads(m)["type"] == "MATCH_FOUND")
+    assert match_found1["room_id"] == match_found2["room_id"]
+    assert {match_found1["color"], match_found2["color"]} == {"white", "black"}
 
 
 @pytest.mark.asyncio

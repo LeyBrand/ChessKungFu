@@ -30,8 +30,8 @@ def test_color_of_unknown_player_is_none():
 
 def test_seated_player_can_move():
     room = make_room()
-    room.handle_click("p1", 100, 100)
-    assert room.get_snapshot()["selected_cell"] == (1, 1)
+    room.handle_click("p1", 100, 600)
+    assert room.get_snapshot()["selected_cell"] == (1, 6)
 
 
 def test_unseated_player_is_rejected():

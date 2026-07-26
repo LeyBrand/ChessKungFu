@@ -1,10 +1,53 @@
-"""
-The "language" spoken over the wire. JSON only (see tournament/serialization.py
-for why pickle/dump are off the table). This is the one place that defines
-what a valid incoming/outgoing message looks like.
-"""
-
 import json
+from dataclasses import dataclass, asdict
+
+@dataclass
+class SnapshotMessage:
+    data: dict
+    type: str = "SNAPSHOT"
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
+@dataclass
+class MatchFoundMessage:
+    room_id: str
+    color: str
+    type: str = "MATCH_FOUND"
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
+@dataclass
+class MatchNotFoundMessage:
+    type: str = "MATCH_NOT_FOUND"
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
+@dataclass
+class ErrorMessage:
+    reason: str
+    type: str = "ERROR"
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
+@dataclass
+class OpponentDisconnectedMessage:
+    seconds_remaining: int
+    type: str = "OPPONENT_DISCONNECTED"
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+
+@dataclass
+class OpponentReconnectedMessage:
+    type: str = "OPPONENT_RECONNECTED"
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self))
+    
 
 VALID_INCOMING_TYPES = {"JOIN_ROOM", "MOVE", "JUMP", "PLAY", "CANCEL_SEEK"}
 
@@ -16,26 +59,3 @@ def parse_incoming(raw: str) -> dict:
     if data["type"] not in VALID_INCOMING_TYPES:
         raise ValueError(f"Unknown message type: {data['type']}")
     return data
-
-
-def make_snapshot_message(snapshot: dict) -> str:
-    return json.dumps({"type": "SNAPSHOT", "data": snapshot})
-
-
-def make_error_message(reason: str) -> str:
-    return json.dumps({"type": "ERROR", "reason": reason})
-
-
-def make_match_found_message(room_id: str, color: str) -> str:
-    return json.dumps({"type": "MATCH_FOUND", "room_id": room_id, "color": color})
-
-
-def make_match_not_found_message() -> str:
-    return json.dumps({"type": "MATCH_NOT_FOUND"})
-
-def make_opponent_disconnected_message(seconds_remaining) -> str:
-    return json.dumps({"type": "OPPONENT_DISCONNECTED", "seconds_remaining": seconds_remaining})
-
-
-def make_opponent_reconnected_message() -> str:
-    return json.dumps({"type": "OPPONENT_RECONNECTED"})

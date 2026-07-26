@@ -1,8 +1,8 @@
-from network.protocol import make_snapshot_message
+from network.protocol import SnapshotMessage
 
 
 async def broadcast_snapshot(room_id, snapshot, connection_manager):
-    message = make_snapshot_message(snapshot)
+    message = SnapshotMessage(data=snapshot).to_json()
     sent_to = []
     for player_id in connection_manager.players_in_room(room_id):
         ws = connection_manager.get_websocket(player_id)

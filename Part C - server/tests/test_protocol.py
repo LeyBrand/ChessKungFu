@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from network.protocol import parse_incoming, make_snapshot_message, make_error_message
+from network.protocol import parse_incoming, SnapshotMessage, ErrorMessage
 
 
 def test_parse_incoming_valid_move():
@@ -21,10 +21,10 @@ def test_parse_incoming_unknown_type_raises():
 
 
 def test_make_snapshot_message_shape():
-    msg = json.loads(make_snapshot_message({"foo": "bar"}))
+    msg = json.loads(SnapshotMessage(data={"foo": "bar"}).to_json())
     assert msg == {"type": "SNAPSHOT", "data": {"foo": "bar"}}
 
 
 def test_make_error_message_shape():
-    msg = json.loads(make_error_message("boom"))
+    msg = json.loads(ErrorMessage(reason="boom").to_json())
     assert msg == {"type": "ERROR", "reason": "boom"}

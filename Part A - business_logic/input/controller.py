@@ -34,16 +34,16 @@ class Controller:
         if self.selected_pos is None:
             if not in_bounds:
                 return
-
             piece = board.get_piece_at(position)
-            if piece is None or piece.color != color:
+            if piece is None:
                 return
-
+            if color is not None and piece.color != color:
+                return
             self.selected_pos = position
             self.selected_by = color
             return
         
-        if color != self.selected_by:
+        if color is not None and color != self.selected_by:
             return
 
         if not in_bounds:
@@ -68,14 +68,10 @@ class Controller:
         self.jump(board, color)
 
     def jump(self, board, color):
-        """
-        Launches whichever piece is currently selected - the jump
-        counterpart of click()'s second-click branch. Requires a prior
-        click() to have selected a piece; otherwise it's a no-op.
-        """
-        if self.selected_pos is None or color != self.selected_by:
+        if self.selected_pos is None:
             return
-
+        if color is not None and color != self.selected_by:
+            return
         result = self.engine.jump(self.selected_pos)
         print(f"JUMP {self.selected_pos}: accepted={result.is_accepted}, reason={result.reason}")  # זמני לדיבוג
 

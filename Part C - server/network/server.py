@@ -10,11 +10,7 @@ from tournament.disconnect_timer import DisconnectTimer
 from network.connection_manager import ConnectionManager
 from network.message_router import handle_message
 from network.broadcaster import broadcast_snapshot
-from network.protocol import (
-    make_match_not_found_message,
-    make_opponent_disconnected_message,
-    make_opponent_reconnected_message,
-)
+from network.protocol import MatchNotFoundMessage, OpponentDisconnectedMessage, OpponentReconnectedMessage
 from data.player_store import PlayerStore, InvalidCredentialsError, UsernameTakenError
 
 TIMEOUT_CHECK_INTERVAL_SEC = 1
@@ -91,7 +87,7 @@ async def handler(websocket):
             del _disconnected_seats[(room_id, color)]
             tournament_manager.reseat(room_id, color, player_id)
             connection_manager.join_room(room_id, player_id)
-            await _notify_opponent(room_id, color, make_opponent_reconnected_message(), tournament_manager, connection_manager)
+            await _notify_opponent(room_id, color, OpponentReconnectedMessage().to_json(), tournament_manager, connection_manager)
 
         try:
             async for raw_message in websocket:
@@ -104,7 +100,7 @@ async def handler(websocket):
                 if not tournament_manager.get_snapshot(room_id)["is_game_over"]:
                     disconnect_timer.start(room_id, color)
                     _disconnected_seats[(room_id, color)] = username
-                    await _notify_opponent(room_id, color, make_opponent_disconnected_message(20), tournament_manager, connection_manager)
+                    await _notify_opponent(room_id, color, OpponentDisconnectedMessage(seconds_remaining=20).to_json(), tournament_manager, connection_manager)
 
             matchmaker.cancel(player_id)
             connection_manager.unregister(player_id)
@@ -121,7 +117,7 @@ async def _matchmaking_timeout_loop():
         for player_id in timed_out:
             ws = connection_manager.get_websocket(player_id)
             if ws is not None:
-                await ws.send(make_match_not_found_message())
+                await ws.send(MatchNotFoundMessage().to_json())
 
 
 async def _disconnect_timeout_loop():

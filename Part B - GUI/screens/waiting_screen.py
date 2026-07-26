@@ -6,9 +6,6 @@ CANVAS_SIZE = (300, 700)
 
 
 class WaitingScreen:
-    """Blocking screen shown after sending PLAY. Returns (room_id, color)
-    on MATCH_FOUND, or None if the search failed/was cancelled."""
-
     def __init__(self, bridge):
         self.bridge = bridge
 
