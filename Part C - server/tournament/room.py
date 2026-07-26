@@ -1,4 +1,4 @@
-from constants import Color
+from constants import Color, value_of
 
 class UnknownPlayerError(ValueError):
     pass # missing implement
@@ -9,6 +9,12 @@ class Room:
         self._session = session
         self.event_bus = event_bus
         self.player_ids = dict(player_ids or {})
+        self.scores = {Color.WHITE: 0, Color.BLACK: 0}
+        if self.event_bus is not None:
+            self.event_bus.subscribe("PIECE_CAPTURED", self._on_piece_captured)
+
+    def _on_piece_captured(self, piece_id, kind, color, captured_by, time_ms):
+        self.scores[captured_by] = self.scores.get(captured_by, 0) + value_of(kind)
 
     def seat(self, color, player_id):
         if color not in (Color.WHITE, Color.BLACK):
@@ -33,7 +39,9 @@ class Room:
         self._session.handle_jump(x, y, color)
 
     def get_snapshot(self):
-        return self._session.get_snapshot()
+        snapshot = self._session.get_snapshot()
+        snapshot["scores"] = dict(self.scores)
+        return snapshot
     
     def color_of(self, player_id):
         for color, pid in self.player_ids.items():

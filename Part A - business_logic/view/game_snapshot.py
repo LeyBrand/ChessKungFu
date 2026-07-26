@@ -52,15 +52,12 @@ class PieceSnapshot:
     
 @dataclass
 class BoardSnapshot:
-    """ייצוג ה-wire המשותף: נבנה פעם אחת בשרת, מסוריאל עם to_dict(),
-    ומדה-סוריאל בחזרה לאותה מחלקה בדיוק בצד הלקוח עם from_dict().
-    מקור אמת יחיד לצורת ה-snapshot - שום מקום אחר לא אמור לבנות
-    את ה-dict הזה ידנית."""
     pieces: list
     selected_cell: Optional[tuple]
     is_game_over: bool
     timestamp_ms: int
     move_history: list = field(default_factory=list)
+    scores: dict = field(default_factory=lambda: {"white": 0, "black": 0})
 
     def to_dict(self):
         return {
@@ -69,6 +66,7 @@ class BoardSnapshot:
             "is_game_over": self.is_game_over,
             "timestamp_ms": self.timestamp_ms,
             "move_history": self.move_history,
+            "scores": self.scores,
         }
 
     @classmethod
@@ -79,4 +77,5 @@ class BoardSnapshot:
             is_game_over=data["is_game_over"],
             timestamp_ms=data["timestamp_ms"],
             move_history=data.get("move_history", []),
+            scores=data.get("scores", {"white": 0, "black": 0}),
         )

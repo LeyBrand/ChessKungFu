@@ -15,6 +15,11 @@ BLACK = 'b'
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 8765
 
+PIECE_VALUES = {"P": 1, "N": 3, "B": 3, "R": 5, "Q": 9, "K": 0}
+
+def value_of(kind):
+    return PIECE_VALUES.get(kind, 0)
+
 from enum import Enum
 
 class Color(str, Enum):
