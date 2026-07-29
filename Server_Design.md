@@ -228,11 +228,135 @@ mid-game migration between workers.
 
 ---
 
-## 9. TODO — sections not yet designed
+## 10. Allocator strategy — which worker gets a new room
 
-- [ ] **Auth / login** — API Gateway split for REST vs. WS traffic
-- [ ] **Game duration (30–90s) → allocator strategy** — why short games mean
-      load-based (not sticky) shard assignment
+**Decision: least-loaded, not round-robin.** Round-robin assumes each unit
+of work costs about the same — true for typical short HTTP requests, but not
+here: a room occupies a worker for its *entire* 30–90s lifetime (no
+mid-game migration, per §8). Round-robin can't react to real imbalance — a
+worker that happened to draw several long games in a row stays "due" for
+more work by the counter, even while genuinely more loaded than others.
+Least-loaded reacts to actual, current load instead.
+
+**Load signal: active room count per worker**, self-reported via a
+heartbeat key in Redis:
+```
+key: heartbeat:{shard_hostname}:{worker_pid}
+value: {"active_rooms": <count>}
+TTL: short (e.g. 5-10s)
+```
+Active room count is a reasonable proxy for CPU load without needing to
+measure CPU% directly, since each room costs roughly similar work.
+
+**Why the TTL matters:** each worker refreshes its own heartbeat key every
+few seconds (well under the TTL), which resets the TTL clock each time. If a
+worker crashes, it simply stops refreshing — the key isn't cleaned up
+manually, Redis expires it automatically once the TTL elapses.
+
+Without a TTL, a crashed worker's *last* heartbeat (e.g. "only 2 rooms, low
+load") would sit in Redis indefinitely. The Allocator would keep seeing it
+as a good low-load candidate and route new matches to it — and those rooms
+would simply vanish, with both matched players waiting on a worker that no
+longer exists. TTL turns "worker went silent" into "entry disappears," so
+the Allocator naturally stops considering it.
+
+**Allocation step:** on a new match, the Allocator reads all
+`heartbeat:*` keys, picks the one with the lowest `active_rooms`, and
+writes that worker's address into `room:{id}` as the `shard` field (§2/§3),
+using the same `HSETNX` pattern already established there.
+
+---
+
+## 11. Auth / login — session tokens, not per-message passwords
+
+**Flow:**
+1. Client sends username+password to the **Auth Service**, once, at login.
+2. Auth Service checks credentials against `PlayerStore`/PostgreSQL (same
+   `verify_password` logic as today). On success, generates a random
+   session token and writes it to Redis:
+   ```
+   key: session:{token}
+   value: {"username": "ley"}
+   TTL: a few hours
+   ```
+3. The client attaches that token (not the password) to every subsequent
+   request/WebSocket message.
+4. Any Gateway or worker that receives a request does `GET session:{token}`
+   — if present, it knows who's calling without touching PostgreSQL at all.
+
+**Why this matters for the numbers in §8:** if every one of the 5,000,000
+moves/sec had to re-verify a username+password against PostgreSQL instead
+of a cheap Redis lookup, the DB would be on the hottest path in the entire
+system — exactly the kind of per-event load that batching (§5) was
+designed to avoid. Session tokens keep PostgreSQL off the real-time path
+entirely; it's only touched once per login.
+
+**TTL here is for a different reason than the heartbeat TTL (§10):** not
+crash detection, but security — a session shouldn't stay valid forever
+without renewed activity.
+
+---
+
+## 12. Summary — how all the pieces connect
+
+```
+                              ┌────────────┐
+                              │   Clients   │
+                              └──────┬─────┘
+                                     │ WebSocket
+                         ┌───────────▼────────────┐
+                         │        Gateway           │  stateless edge;
+                         │ (routing + allocator     │  folds Game Allocator
+                         │  role folded in, §3)     │  role in (reduced scope)
+                         └──┬──────────┬─────────┬─┘
+                            │          │         │
+                  join_room │   seek() │  session │
+                       (§2,3)│  (§6)   │  check(§11)
+                            │          │         │
+                            ▼          ▼         ▼
+        ┌───────────────────────────────────────────────────┐
+        │                        Redis                          │
+        │  room:{id}       -> {white, black, shard}  HSETNX      │ §2 §3
+        │  waiting_pool    -> Sorted Set, scored by rating        │ §6
+        │                     (Lua script: find+remove atomic)    │
+        │  heartbeat:{w}   -> {active_rooms}   TTL=crash-detect   │ §10
+        │  rating:{user}   -> value             HSET, immediate   │ §5
+        │  session:{token} -> {username}        TTL=security      │ §11
+        └───────────────────────┬───────────────────────────────┘
+                                 │ resolved shard:worker address
+                 ┌───────────────┼────────────────┐
+                 ▼               ▼                ▼
+          ┌────────────┐  ┌────────────┐   ┌────────────┐
+          │ game-shard  │  │ game-shard  │   │ game-shard  │   1 worker
+          │  worker 0   │  │  worker 1   │   │  worker N   │   process per
+          │ GameEngine  │  │ GameEngine  │   │ GameEngine  │   CPU core (§8) —
+          │ (Part A)    │  │ (Part A)    │   │ (Part A)    │   separate GILs,
+          └──────┬──────┘  └──────┬──────┘   └──────┬──────┘   true parallelism
+                 │                │                 │
+                 └────────────────┼─────────────────┘
+                                   │ batched flush, ~1/sec (§5)
+                                   ▼
+                         ┌───────────────────┐
+                         │    PostgreSQL       │
+                         │ users, ratings       │  primary + read
+                         │ (durable, off the    │  replicas (§5)
+                         │  real-time path)      │
+                         └───────────────────┘
+```
+
+**Reading the diagram:** every arrow into Redis is one of the atomic
+patterns worked out above (`HSETNX` for claim-once fields, a Lua script for
+find-and-remove) — the same race-condition shape (two Gateways / two
+requests hitting the same decision at once) recurs at every layer, and gets
+the same fix each time. Redis is the single shared source of truth for
+anything "hot" (rooms, matchmaking, load, sessions, live ratings);
+PostgreSQL only sees durable, low-frequency, batched writes.
+
+---
+
+## 13. TODO — sections not yet designed
+
+*(none remaining — draft complete; ready for review)*
 
 ---
 
