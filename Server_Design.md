@@ -1,10 +1,11 @@
 # Kung-Fu Chess — Scalable Server Design (v1 draft)
 
 **Scope:** Evolving the current single-process `GameServer` (asyncio + websockets,
-in-process `PlayerRegistry`) into a small, horizontally-scalable version that can
-run as a few cooperating Docker containers, following the reviewed reference
-architecture at a reduced scale appropriate for a working Docker Compose demo
-(not a literal 100M-user deployment).
+in-process `PlayerRegistry`, in-process `Matchmaker`) into a horizontally-scalable
+service split — Gateway, Auth, Matchmaker, Game Allocator, Game Server Shards,
+Rating Service, Redis, PostgreSQL, NATS — aligned with the reviewed KamaTech
+reference architecture, sized down to a working Docker Compose demo (single
+instance of each stateful piece, not a literal 100M-user deployment).
 
 ---
 
@@ -62,19 +63,23 @@ field too — see §3.
 
 ---
 
-## 3. Who decides which container runs a room (Game Allocator role)
+## 3. Who decides which container runs a room — Game Allocator (separate service)
 
-The container a client is connected to (the Gateway side) is not necessarily
-the container that runs that room's game logic — separating "connection edge"
-from "game logic host" means the game-running container can be chosen for
-speed/load, not just because it happened to accept the socket first.
+**Revision:** originally this role was folded into the Gateway for
+simplicity. Aligning with the KamaTech reference, it's a **standalone
+service** instead: the Gateway/WS Gateway never decides which shard runs a
+room — separating "connection edge" from "allocation decision" means the
+allocator can be scaled and reasoned about independently (per §7's
+control-plane discussion), and a spike in connections doesn't compete with
+allocation logic for resources.
 
-Whichever Gateway instance handles the *first* join request for a room_id is
-the one that decides (and writes) which shard will run it — there's no one
-else who could decide earlier, since no one else has seen the room yet.
+The Game Allocator receives a "matched" event from the Matchmaker (over
+NATS, §7) and decides which shard a new room runs on — see §10 for the
+least-loaded selection strategy.
 
-**Race condition:** two Gateways could both try to allocate a shard for the
-same room_id at the same instant. Same fix as before:
+**Race condition:** with multiple Game Allocator replicas, two of them could
+both try to allocate a shard for the same room_id at the same instant (e.g.
+if the "matched" event were somehow delivered twice). Same fix as before:
 
 ```
 HSETNX room:{id} shard "game-shard-1:8765"
@@ -91,14 +96,22 @@ If it returns `0`, another Gateway already assigned a shard — read it with
 
 | service | contains | replicas (local) |
 |---|---|---|
-| `gateway` | connection handling + room registry logic (§2, §3) | 1–2 |
-| `game-shard-1`, `game-shard-2` | `GameServer` game-logic instances | 2 |
-| `redis` | room registry (Hash per room) | 1 |
-| *(postgres — TBD, see §6)* | | |
+| `api-gateway` | REST/HTTP: login forwarding, room CRUD/history | 1 |
+| `ws-gateway` | WebSocket terminator, relays moves/state; room registry lookups (§2) | 1–2 |
+| `auth-service` | credential check against Postgres, issues session tokens (§11) | 1 |
+| `rooms-api` | room CRUD/history, backed by Postgres | 1 |
+| `matchmaker` | ELO queue against Redis Sorted Set (§6), publishes "matched" to NATS | 1 |
+| `game-allocator` | consumes "matched" from NATS, picks least-loaded shard (§3, §10) | 1 |
+| `game-shard-1`, `game-shard-2` | `GameServer` game-logic instances, N worker processes each | 2 |
+| `redis` | room registry, waiting pool, heartbeats, sessions, live ratings | 1 |
+| `postgres` | users, ratings (durable) | 1 |
+| `nats` | control-plane event bus (§7) | 1 |
 
 Containers resolve each other by **service name** as hostname (Docker's
 internal DNS) — e.g. `game-shard-1:8765` is reachable by name from any other
-container on the same Compose network, no manual IP tracking needed.
+container on the same Compose network, no manual IP tracking needed. This
+mirrors the KamaTech reference's service list at local-development scale —
+no HPA, no multi-region, single instance of Redis/Postgres/NATS.
 
 ---
 
@@ -173,11 +186,12 @@ ZRANGEBYSCORE waiting_pool {rating-elo_range} {rating+elo_range}
 ```
 This gives the range lookup `seek()` needs, shared across every container.
 
-**Race condition (same pattern as §2/§3, new shape):** two Gateways could
-run `seek()` at the same instant, both `ZRANGEBYSCORE` and find the *same*
-waiting opponent, and both declare a match with them — a classic
-check-then-act gap, this time between "find" (`ZRANGEBYSCORE`) and "use"
-(`ZREM`), which unlike `HSETNX` has no single built-in atomic command.
+**Race condition (same pattern as §2/§3, new shape):** with multiple
+Matchmaker replicas, two could run `seek()` at the same instant, both
+`ZRANGEBYSCORE` and find the *same* waiting opponent, and both declare a
+match with them — a classic check-then-act gap, this time between "find"
+(`ZRANGEBYSCORE`) and "use" (`ZREM`), which unlike `HSETNX` has no single
+built-in atomic command.
 
 **Fix: a Redis Lua script.** Redis executes a Lua script as one
 uninterruptible unit — no other client's command can run in the middle of
@@ -188,10 +202,50 @@ seek(player_id, rating) — atomic Lua script:
   2. if found: ZREM them from the pool, return them as the match
   3. if not found: ZADD the caller to the pool, return nil
 ```
-Because Redis runs scripts strictly one-at-a-time, a second Gateway's
-`seek()` call — even fired milliseconds later — simply won't find that
-opponent in the pool anymore; there's no window where two Gateways can both
-"win" the same match.
+Because Redis runs scripts strictly one-at-a-time, a second Matchmaker
+replica's `seek()` call — even fired milliseconds later — simply won't find
+that opponent in the pool anymore; there's no window where two replicas can
+both "win" the same match.
+
+---
+
+## 7. NATS — control-plane event bus between split services
+
+**Why it's needed now (wasn't in v1):** once Matchmaker, Game Allocator,
+Auth Service, and the Gateways are *separate* containers (§4), some of them
+need to notify each other about things that happen — without becoming
+tightly coupled (each one hard-coding the others' addresses) or blocking on
+a synchronous call for something that isn't urgent.
+
+**Two communication shapes, and how to tell them apart:**
+| Shape | When to use it | Example |
+|---|---|---|
+| **Sync RPC** (HTTP/gRPC, caller waits) | Caller can't proceed without the answer *right now* | WS Gateway → Auth: "is this session valid?" (must know before relaying anything) |
+| **NATS event** (publish, fire-and-forget) | Low frequency, caller doesn't need to wait for a response to keep going | Matchmaker → Game Allocator: "players X,Y matched" |
+
+**Classifying the actual inter-service calls in this design:**
+- **WS Gateway → Auth Service** ("is this session valid?") — sync RPC. The
+  Gateway cannot relay a message without knowing the answer immediately.
+- **WS Gateway → Redis** (resolve `room:{id} → shard`) — not NATS at all,
+  a direct Redis read; the Gateway needs the address immediately to route.
+- **Matchmaker → Game Allocator** ("matched: player A + player B") — NATS
+  event. Happens once per match (every 30–90s per room, not per move — a
+  tiny fraction of the 5,000,000 moves/sec from §8), and the Matchmaker
+  doesn't need a reply to keep working the queue.
+- **Game Server Shard → Rating Service** ("game over, update rating") — NATS
+  event, same reasoning: once per game end, fire-and-forget.
+- **WS Gateway → Matchmaker** ("I'm looking for a match") is a hybrid: the
+  client needs immediate acknowledgment of "you're in the queue" (sync), but
+  the *match itself*, when it happens, arrives later as a separate event
+  (the Matchmaker → Game Allocator NATS message above, which eventually
+  results in the Gateway being told where to route the player).
+
+**What NATS is *not* used for:** live gameplay traffic. Moves and state
+updates stay on the direct WS Gateway ↔ Game Server Shard path (address
+resolved via Redis, §2/§3) — routing 5,000,000 moves/sec through an event
+bus would add a hop to the highest-frequency traffic in the system for no
+benefit, since that traffic already has a clear point-to-point destination
+once the room is allocated.
 
 ---
 
@@ -270,7 +324,10 @@ using the same `HSETNX` pattern already established there.
 ## 11. Auth / login — session tokens, not per-message passwords
 
 **Flow:**
-1. Client sends username+password to the **Auth Service**, once, at login.
+1. Client sends username+password over REST/HTTP to **API Gateway**, which
+   forwards it to the standalone **Auth Service** (§4) — once, at login.
+   This is separate from the **WS Gateway**, which only handles the
+   long-lived gameplay connection, not login itself.
 2. Auth Service checks credentials against `PlayerStore`/PostgreSQL (same
    `verify_password` logic as today). On success, generates a random
    session token and writes it to Redis:
@@ -300,57 +357,79 @@ without renewed activity.
 ## 12. Summary — how all the pieces connect
 
 ```
-                              ┌────────────┐
-                              │   Clients   │
-                              └──────┬─────┘
-                                     │ WebSocket
-                         ┌───────────▼────────────┐
-                         │        Gateway           │  stateless edge;
-                         │ (routing + allocator     │  folds Game Allocator
-                         │  role folded in, §3)     │  role in (reduced scope)
-                         └──┬──────────┬─────────┬─┘
-                            │          │         │
-                  join_room │   seek() │  session │
-                       (§2,3)│  (§6)   │  check(§11)
-                            │          │         │
-                            ▼          ▼         ▼
-        ┌───────────────────────────────────────────────────┐
-        │                        Redis                          │
-        │  room:{id}       -> {white, black, shard}  HSETNX      │ §2 §3
-        │  waiting_pool    -> Sorted Set, scored by rating        │ §6
-        │                     (Lua script: find+remove atomic)    │
-        │  heartbeat:{w}   -> {active_rooms}   TTL=crash-detect   │ §10
-        │  rating:{user}   -> value             HSET, immediate   │ §5
-        │  session:{token} -> {username}        TTL=security      │ §11
-        └───────────────────────┬───────────────────────────────┘
-                                 │ resolved shard:worker address
-                 ┌───────────────┼────────────────┐
-                 ▼               ▼                ▼
-          ┌────────────┐  ┌────────────┐   ┌────────────┐
-          │ game-shard  │  │ game-shard  │   │ game-shard  │   1 worker
-          │  worker 0   │  │  worker 1   │   │  worker N   │   process per
-          │ GameEngine  │  │ GameEngine  │   │ GameEngine  │   CPU core (§8) —
-          │ (Part A)    │  │ (Part A)    │   │ (Part A)    │   separate GILs,
-          └──────┬──────┘  └──────┬──────┘   └──────┬──────┘   true parallelism
-                 │                │                 │
-                 └────────────────┼─────────────────┘
-                                   │ batched flush, ~1/sec (§5)
-                                   ▼
-                         ┌───────────────────┐
-                         │    PostgreSQL       │
-                         │ users, ratings       │  primary + read
-                         │ (durable, off the    │  replicas (§5)
-                         │  real-time path)      │
-                         └───────────────────┘
+                                    ┌────────────┐
+                                    │   Clients   │
+                                    └──┬───────┬──┘
+                                REST/  │       │ WebSocket
+                                HTTP   │       │
+                        ┌──────────────▼┐   ┌──▼───────────────┐
+                        │  API Gateway   │   │    WS Gateway     │  both stateless,
+                        │ login, room    │   │ terminates socket, │  never hold room/
+                        │ CRUD, history  │   │ relays moves/state │  game state (§3)
+                        └───┬────────┬──┘   └──┬─────────────┬──┘
+                            │        │         │             │
+                            ▼        ▼         │       resolve room→shard
+                     ┌───────────┐ ┌────────┐  │        (direct Redis read,
+                     │   Auth    │ │ Rooms  │  │         not NATS — §7)
+                     │  Service  │ │  API   │  │             │
+                     │ (§11)     │ │        │  │             │
+                     └─────┬─────┘ └───┬────┘  │             │
+                            │           │      │ session      │
+                            │           │      │ check (sync, │
+                            │           │      │ §7, §11)     │
+                            └─────┬─────┴──────┴──────┬────── ┘
+                                  │                    │
+                                  ▼                    ▼
+                   ┌───────────────────────────────────────────────────┐
+                   │                        Redis                        │
+                   │  room:{id}       -> {white, black, shard}  HSETNX   │ §2 §3
+                   │  waiting_pool    -> Sorted Set, scored by rating     │ §6
+                   │                     (Lua script: find+remove atomic)│
+                   │  heartbeat:{w}   -> {active_rooms}  TTL=crash-detect│ §10
+                   │  rating:{user}   -> value            HSET, immediate│ §5
+                   │  session:{token} -> {username}       TTL=security   │ §11
+                   └───────────────────────┬───────────────────────────┘
+                                            │ resolved shard:worker address
+                            ┌───────────────┼───────────────────┐
+                            │                                   │
+                     "I'm looking      ┌─────────────┐   ┌─────────────┐
+                      for a match"     │ game-shard 0 │   │ game-shard N │  1 worker/
+                      (sync ack) ──►┌──┤  worker 0    │...│  worker N    │  CPU core
+                            │       │  │ GameEngine   │   │ GameEngine   │  (§8) —
+                     ┌──────▼─────┐ │  │ (Part A)     │   │ (Part A)     │  separate
+                     │ Matchmaker │ │  └──────┬───────┘   └──────┬───────┘  GILs
+                     │  (§6)      │ │         │                  │
+                     └─────┬──────┘ │         └────────┬─────────┘
+                            │        │                  │
+                  "matched!"│ NATS   │                  │ "game over,
+                  (event,   │(§7)    │                  │  update rating"
+                   §7)      │        │                  │ (NATS event, §7)
+                            ▼        │                  ▼
+                    ┌───────────────┐│          ┌───────────────┐
+                    │ Game Allocator││          │ Rating Service │
+                    │ least-loaded  ││          │  (elo update)  │
+                    │ (§3, §10)     ││          └───────┬────────┘
+                    └───────┬───────┘│                  │
+                            │  writes shard             │ batched
+                            │  to Redis (§3)             │ flush, ~1/sec
+                            └────────┘                   ▼
+                                                  ┌───────────────────┐
+                                                  │    PostgreSQL       │
+                                                  │ users, ratings       │  primary +
+                                                  │ (durable, off the    │  read replicas
+                                                  │  real-time path)      │  (§5)
+                                                  └───────────────────┘
 ```
 
-**Reading the diagram:** every arrow into Redis is one of the atomic
-patterns worked out above (`HSETNX` for claim-once fields, a Lua script for
-find-and-remove) — the same race-condition shape (two Gateways / two
-requests hitting the same decision at once) recurs at every layer, and gets
-the same fix each time. Redis is the single shared source of truth for
-anything "hot" (rooms, matchmaking, load, sessions, live ratings);
-PostgreSQL only sees durable, low-frequency, batched writes.
+**Reading the diagram:** solid arrows into Redis are the atomic patterns
+worked out above (`HSETNX` for claim-once fields, a Lua script for
+find-and-remove) — the same race-condition shape (two replicas hitting the
+same decision at once) recurs at every layer, and gets the same fix each
+time. Dashed-equivalent paths (Matchmaker→Allocator, Shard→Rating Service)
+are NATS events — low-frequency, fire-and-forget, decoupling services that
+don't need to block on each other (§7). The live-gameplay path (WS Gateway
+↔ Game Server Shard, resolved via Redis) never touches NATS — that's
+reserved for high-volume data, not control-plane messages.
 
 ---
 
@@ -360,6 +439,8 @@ PostgreSQL only sees durable, low-frequency, batched writes.
 
 ---
 
-*Draft status: sections 1–4 reflect concrete decisions made in design
-discussion. Section 5 items still need to be worked through before this is
-submission-ready.*
+*Draft status: full service split (API/WS Gateway, Auth, Rooms API,
+Matchmaker, Game Allocator, Rating Service, NATS) now aligned with the
+KamaTech reference architecture. Move-history persistence (§5) remains a
+deliberate, explicitly-noted scope deviation — no post-game replay
+requirement exists in this project.*
